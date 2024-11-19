@@ -108,6 +108,12 @@ export const constantRoutes = [
 			name:'CostCalculation',
 			component: () => import('@/views/standard/calculation/index.vue'),
 			meta:{ title:'造价计算', icon:'calculator'}
+		},
+		{
+			path:'choose-standard',
+			name:'ChooseStandard',
+			component: () => import('@/views/standard/choose-standard/index.vue'),
+			meta:{title:'选择标准测试'}
 		}
       ]
     }
