@@ -83,7 +83,44 @@ export const constantRoutes = [
         meta: { title: '个人中心', icon: 'user' }
       }
     ]
-  }
+  },
+  {
+      path: '/standards',
+      component: Layout,
+      name: 'Standard',
+      meta: { title: '标准管理', icon: 'el-icon-s-tools' },
+      children: [
+        {
+          path: 'list',
+          name: 'StandardList',
+          component: () => import('@/views/standard/list/index.vue'),
+          meta: { title: '标准列表' }
+        },
+        {
+          path: 'detail/:id',
+          name: 'StandardDetail',
+          component: () => import('@/views/standard/detail/index.vue'),
+		  hidden: true,
+          meta: { title: '标准详情' }
+        }
+      ]
+    },
+	{
+	  path: '/evaluation-cost',
+	  component: Layout, // 使用项目的 Layout 组件
+	  name: 'EvaluationCost',
+	  meta: { title: '评估项目造价', icon: 'el-icon-coin' }, // 在菜单中显示
+	  children: [
+	    {
+	      path: 'index',
+	      name: 'EvaluationCostIndex',
+	      component: () => import('@/views/evaluation-cost/index.vue'),
+	      meta: { title: '评估项目造价' } // 显示在菜单中的标题
+	    }
+	  ]
+	}
+
+
 ]
 
 // 动态路由，基于用户权限动态去加载
