@@ -88,7 +88,7 @@ export const constantRoutes = [
       path: '/standards',
       component: Layout,
       name: 'Standard',
-      meta: { title: '标准管理', icon: 'el-icon-s-tools' },
+      meta: { title: '综合造价评估', icon: 'el-icon-s-tools' },
       children: [
         {
           path: 'list',
@@ -102,23 +102,15 @@ export const constantRoutes = [
           component: () => import('@/views/standard/detail/index.vue'),
 		  hidden: true,
           meta: { title: '标准详情' }
-        }
+        },
+		{
+			path:'calculation',
+			name:'CostCalculation',
+			component: () => import('@/views/standard/calculation/index.vue'),
+			meta:{ title:'造价计算'}
+		}
       ]
-    },
-	{
-	  path: '/evaluation-cost',
-	  component: Layout, // 使用项目的 Layout 组件
-	  name: 'EvaluationCost',
-	  meta: { title: '评估项目造价', icon: 'el-icon-coin' }, // 在菜单中显示
-	  children: [
-	    {
-	      path: 'index',
-	      name: 'EvaluationCostIndex',
-	      component: () => import('@/views/evaluation-cost/index.vue'),
-	      meta: { title: '评估项目造价' } // 显示在菜单中的标题
-	    }
-	  ]
-	}
+    }
 
 
 ]
