@@ -88,13 +88,13 @@ export const constantRoutes = [
       path: '/standards',
       component: Layout,
       name: 'Standard',
-      meta: { title: '综合造价评估', icon: 'el-icon-s-tools' },
+      meta: { title: '综合造价评估', icon: 'user' },
       children: [
         {
           path: 'list',
           name: 'StandardList',
           component: () => import('@/views/standard/list/index.vue'),
-          meta: { title: '标准列表' }
+          meta: { title: '标准列表' ,icon:'stdlist2'}
         },
         {
           path: 'detail/:id',
@@ -107,7 +107,7 @@ export const constantRoutes = [
 			path:'calculation',
 			name:'CostCalculation',
 			component: () => import('@/views/standard/calculation/index.vue'),
-			meta:{ title:'造价计算'}
+			meta:{ title:'造价计算', icon:'calculator'}
 		}
       ]
     }
