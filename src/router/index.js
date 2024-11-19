@@ -88,7 +88,7 @@ export const constantRoutes = [
       path: '/standards',
       component: Layout,
       name: 'Standard',
-      meta: { title: '综合造价评估', icon: 'user' },
+      meta: { title: '综合造价评估', icon: 'dollar-bag' },
       children: [
         {
           path: 'list',
