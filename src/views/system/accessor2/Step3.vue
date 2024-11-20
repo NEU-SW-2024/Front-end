@@ -8,7 +8,7 @@
 
     <!-- 显示Loading状态 -->
     <el-loading :loading="loading" text="数据加载中..." :fullscreen="true" />
-
+    <template v-if="featurePoints && featurePoints.length">
     <!-- 功能点表格 -->
     <el-table
         :data="featurePoints"
@@ -30,23 +30,30 @@
         }"
         class="feature-table"
     >
-      <el-table-column prop="name" label="功能点名称" min-width="180" />
-      <el-table-column prop="category" label="功能点分类" width="150" />
-      <el-table-column prop="complexity" label="功能点复杂度" width="150" />
-      <el-table-column prop="points" label="功能点分数" width="150">
-        <template #default="{ row }">
-          <span class="points-value">{{ row.points }}</span>
+    <el-table-column prop="funcName" label="功能名称" />
+      <el-table-column prop="funcDescr" label="功能描述" />
+      <el-table-column prop="tag" label="功能类型">
+        <template #default="scope">
+          {{ scope.row.tag }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="diff" label="复杂度">
+        <template #default="scope">
+          {{ scope.row.diff }}复杂度
+        </template>
+      </el-table-column>
+      <el-table-column prop="points" label="功能点分值">
+        <template #default="scope">
+          {{ calculatePoints(scope.row) || 0 }}
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- UFP计算结果展示 -->
-    <div class="ufp-container">
-      <template v-for="(point, index) in featurePoints" :key="index">
-        {{ point.points }}<span v-if="index < featurePoints.length - 1"> + </span>
-      </template>
-      = {{ projectInfo.ufp }}（UFP）
-    </div>
+    <!-- 显示总分 -->
+    <div class="total-points">
+      总功能点数：{{ totalPoints }}
+      </div>
+    </template>
   </div>
 </template>
 
@@ -70,59 +77,60 @@ export default {
         projectName: '示例项目',  // 示例项目名称
         ufp: 0  // 初始未调整功能点数
       },
-      localFeaturePoints: [] // 新增本地数据
+      // 权重值对照表
+      weightTable: {
+        'EI(外部接口)': { '低': 3, '中': 4, '高': 6 },
+        'EO(外部输出)': { '低': 4, '中': 5, '高': 7 },
+        'EQ(外部查询)': { '低': 3, '中': 4, '高': 6 },
+        'ILF(内部逻辑文件)': { '低': 7, '中': 10, '高': 15 },
+        'EIF(外部接口文件)': { '低': 5, '中': 7, '高': 10 },
+      }
     };
   },
-  methods: {
-    async saveFeaturePoints() {
-      // 准备假设的功能点数据
-      const fakeFeaturePoints = [
-        {
-          projectId: this.projectId,
-          funcName: '功能点1',
-          funcDescr: '描述1',
-          tag: '分类1',
-          diff: 3
-        },
-        {
-          projectId: this.projectId,
-          funcName: '功能点2',
-          funcDescr: '描述2',
-          tag: '分类2',
-          diff: 5
-        },
-        {
-          projectId: this.projectId,
-          funcName: '功能点3',
-          funcDescr: '描述3',
-          tag: '分类3',
-          diff: 8
-        }
-      ];
-
-      try {
-        this.loading = true;
-        // 发送 POST 请求到后端保存功能点
-        const response = await this.$axios.post('/accessor/saveFunc', fakeFeaturePoints);
-
-        if (response.code===1) {
-          console.log('功能点保存成功:', response.data.feats);
-          // 模拟保存后的操作，假设后端返回更新的 featurePoints 和 UFP
-          this.localFeaturePoints = response.data.feats || fakeFeaturePoints;
-      /*    this.projectInfo.ufp = response.data.projectInfo?.ufp || 16; // 假设的 UFP*/
-          //直接遍历计算UFP，是localFeaturePoints 中的
-        } else {
-         /* console.error('保存功能点失败:', response.data.message);*/
-        }
-      } catch (error) {
-       /* console.error('保存功能点时出错:', error);*/
-      } finally {
-        this.loading = false;
-      }
+  computed: {
+    totalPoints() {
+      return this.featurePoints.reduce((sum, point) => {
+        return sum + this.calculatePoints(point)
+      }, 0)
     }
   },
-  mounted() {
-    this.saveFeaturePoints();  // 初始调用保存功能点数据
+  methods: {
+    calculatePoints(point) {
+      if (!point || !point.tag || !point.diff) {
+        return 0;
+      }
+      
+      try {
+        // 移除复杂度后面的"复杂度"文字
+        const diff = point.diff.replace('复杂度', '');
+        
+        // 直接使用完整的tag名称
+        if (this.weightTable[point.tag] && this.weightTable[point.tag][diff]) {
+          return this.weightTable[point.tag][diff];
+        }
+        
+        console.warn('无法找到对应的权重值:', {
+          tag: point.tag,
+          diff: diff,
+          availableTags: Object.keys(this.weightTable)
+        });
+        return 0;
+      } catch (error) {
+        console.error('计算分值时出错:', error);
+        return 0;
+      }
+    },
+    
+  },
+  created() {
+    // 调试输出
+    console.log('接收到的功能点数据:', this.featurePoints);
+    if (this.featurePoints.length > 0) {
+      console.log('第一个功能点的tag和diff:', {
+        tag: this.featurePoints[0].tag,
+        diff: this.featurePoints[0].diff
+      });
+    }
   }
 };
 </script>
@@ -238,5 +246,15 @@ export default {
 
 :deep(.el-table--striped .el-table__row--striped) {
   background-color: #fafafa;
+}
+.total-points {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f0f9eb;
+  border-radius: 4px;
+  color: #67c23a;
+  font-weight: bold;
+  text-align: right;
+  font-size: 16px;
 }
 </style>

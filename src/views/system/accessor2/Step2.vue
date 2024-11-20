@@ -19,9 +19,9 @@
                 <template #append>
                   <!-- 分类和复杂度标签 -->
                   <div class="tags-container">
-                    <el-tag v-if="point.category" type="primary">{{ point.category }}</el-tag>
-                    <el-tag v-if="point.complexity" :type="complexityType(point.complexity)">
-                      {{ point.complexity }}
+                    <el-tag v-if="point.tag" type="primary">{{ point.tag }}</el-tag>
+                    <el-tag v-if="point.diff" :type="complexityType(point.diff)">
+                      {{ point.diff }}
                     </el-tag>
                   </div>
                 </template>
@@ -32,12 +32,12 @@
           <!-- 分类和复杂度下拉框 -->
           <el-row :gutter="10" class="feature-inputs">
             <el-col :span="12">
-              <el-select v-model="point.category" placeholder="选择分类">
+              <el-select v-model="point.tag" placeholder="选择分类">
                 <el-option v-for="(category, index) in categories" :key="index" :label="category" :value="category" />
               </el-select>
             </el-col>
             <el-col :span="12">
-              <el-select v-model="point.complexity" placeholder="选择复杂度">
+              <el-select v-model="point.diff" placeholder="选择复杂度">
                 <el-option v-for="(complexity, index) in complexities" :key="index" :label="complexity" :value="complexity" />
               </el-select>
             </el-col>
@@ -47,7 +47,7 @@
           <el-row class="feature-inputs">
             <el-col :span="24">
               <el-input
-                v-model="point.description"
+                v-model="point.funcDescr"
                 type="textarea"
                 disabled
                 :rows="3"
@@ -75,7 +75,7 @@ export default {
   computed: {
     // 校验：所有功能点的分类和复杂度是否填写完整
     isValid() {
-      return this.featurePoints.every(point => point.category && point.complexity);
+      return this.featurePoints.every(point => point.tag && point.diff);
     }
   },
   watch: {

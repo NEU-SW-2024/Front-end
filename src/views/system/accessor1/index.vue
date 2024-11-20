@@ -24,29 +24,24 @@
           <!-- 卡片标题区 -->
           <div class="card-header">
             <h3>{{ project.name }}</h3>
-            <el-tag 
-              :type="getStatusType(project.status)" 
-              class="status-tag">
-              {{ project.status }}
+            <el-tag   
+              class="status-tag"
+              :type="getStatusType(projectStatuses[project.projectId])">
+              {{ projectStatuses[project.projectId] || '加载中...' }}
             </el-tag>
           </div>
           
           <!-- 卡片主体区 -->
           <div class="card-body">
-            <p class="card-description">{{ decodeBase64Text(project.description.text) }}</p>
-            <img 
-              v-if="project.description.image && project.description.image.trim() !== ''" 
-              :src="`data:image/png;base64,${project.description.image}`" 
-              alt="项目图片" 
-              class="card-image" />
+            <p class="card-description">{{ project.description}}</p>
           </div>
 
           <!-- 卡片底部按钮 -->
           <div class="card-footer">
             <el-button 
-              :type="project.status === '待评估' ? 'primary' : 'success'"
+              :type="projectStatuses[project.projectId] === '待评估' ? 'primary' : 'success'"
               @click="handleButtonClick(project)">
-              {{ project.status === '待评估' ? '去评估' : '查看结果' }}
+              {{ projectStatuses[project.projectId] === '待评估' ? '去评估' : '查看结果' }}
             </el-button>
           </div>
         </div>
@@ -63,7 +58,8 @@
       return {
         searchQuery: '',
         projects: [],
-        filteredProjects: [] // 用于存储搜索结果
+        filteredProjects: [], // 用于存储搜索结果
+        projectStatuses: {} // 新增：用于存储项目状态
       };
     },
     mounted() {
@@ -72,6 +68,34 @@
       this.filteredProjects = this.projects;
     },
     methods: {
+      async getProjectStatus(projectId) {
+        const response = await request({
+          url: '/dev-api/accessor/getStatus',
+          method: 'get',
+          params: { projectId }
+        })  
+        if (response.code === 200) {
+          // 修改这里，直接用数字比较
+      switch(Number(response.data)) {  // 确保是数字类型
+        case 0:
+          return '待评估';
+        case 1:
+          return '待审核';
+        case 2:
+          return '已完成';
+        default:
+            return '未知';
+          }
+        }
+      },
+      getStatusType(status) {
+      const statusMap = {
+        '待评估': 'info',
+        '待审核': 'warning',
+        '已完成': 'success',
+      };
+      return statusMap[status] || 'info';
+    },
       async getProjects() {
       try {
         const response = await request({
@@ -85,6 +109,13 @@
         if (response.code === 200) {
           this.projects = response.data;
           this.filteredProjects = this.projects;
+          // 获取所有项目的状态
+          await Promise.all(
+            this.projects.map(async (project) => {
+              this.projectStatuses[project.projectId] = await this.getProjectStatus(project.projectId);
+            })
+          );
+          console.log(this.projectStatuses);
         } else {
           this.$message.error(response.msg || '获取项目列表失败');
         }
@@ -102,9 +133,6 @@
           return 'success';
         }
       },
-      goToEvaluation(projectId: number) {
-        this.$router.push({ path: `/accessor2` });
-      },
       performSearch() {
       if (!this.searchQuery.trim()) {
         this.filteredProjects = this.projects;
@@ -121,12 +149,18 @@
       });
     },
       handleButtonClick(project) {
-      if (project.status === '待评估') {
+      if (this.projectStatuses[project.projectId] === '待评估') {
         // 跳转到评估页面
-        this.$router.push(`/accessor2`);
+        this.$router.push({
+  path: '/accessor2',
+  query: { projectId: project.projectId.toString() }
+});
       } else {
         // 跳转到结果查看页面
-        this.$router.push(`/accessor3`);
+        this.$router.push({
+          path: '/accessor3',
+          query: { projectId: project.projectId.toString() }
+        })
       }
     },
     },

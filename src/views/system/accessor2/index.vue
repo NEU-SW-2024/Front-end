@@ -18,15 +18,15 @@
       <!-- 动态内容显示区域 -->
       <div class="step-content">
         <!-- 步骤 1: 功能点录入 -->
-        <Step1 v-if="activeStep === 1" :featurePoints="featurePoints" @addPoint="addFeaturePoint" @deletePoint="deleteFeaturePoint" @validate="handleValidation"/>
+        <Step1 v-if="activeStep === 1" :featurePoints="featurePoints" :projectId="projectId" @addPoint="addFeaturePoint" @deletePoint="deleteFeaturePoint" @validate="handleValidation"/>
         <!-- 步骤 2: 功能点分类与复杂度选择 -->
-        <Step2 v-if="activeStep === 2" :featurePoints="featurePoints" @prevStep="goToPrevStep" />
+        <Step2 v-if="activeStep === 2" :featurePoints="featurePoints" :projectId="projectId" @prevStep="goToPrevStep" />
         <!-- 步骤 3: 计算未调整功能点（UFP） -->
-        <Step3 v-if="activeStep === 3" :featurePoints="featurePoints" :projectId="projectId" @prevStep="goToPrevStep" @nextStep="goToNextStep"/>
+        <Step3 v-if="activeStep === 3" :featurePoints="featurePoints" :projectId="projectId" @prevStep="goToPrevStep" @nextStep="goToNextStep" />
         <!-- 步骤 4: 复杂度调整 -->
-        <Step4 v-if="activeStep === 4" :adjustmentFactors="adjustmentFactors" :projectId="projectId" @prevStep="goToPrevStep" @nextStep="goToNextStep" />
+        <Step4 v-if="activeStep === 4" :adjustmentFactors="adjustmentFactors" :featurePoints="featurePoints" :projectId="projectId" @prevStep="goToPrevStep" @nextStep="goToNextStep" />
         <!-- 步骤 5: 功能点分析结果 -->
-        <Step5 v-if="activeStep === 5" :adjustmentFactors="adjustmentFactors" :featurePoints="featurePoints" :projectId="projectId" @prevStep="goToPrevStep" />
+        <Step5 ref="Step5" v-if="activeStep === 5" :adjustmentFactors="adjustmentFactors" :featurePoints="featurePoints" :projectId="projectId" :projectProgress="projectProgress" @prevStep="goToPrevStep" />
       </div>
 
       <!-- 下一步和上一步按钮 -->
@@ -50,8 +50,10 @@ import Step2 from './Step2.vue';
 import Step3 from "./Step3.vue";
 import Step4 from './Step4.vue';
 import Step5 from "./Step5.vue";
+import request from '@/utils/request';
 
 export default {
+  
   name: 'Index',
   components: {
     Step1,
@@ -59,9 +61,15 @@ export default {
     Step3,
     Step4,
     Step5
+  },props: {
+    projectId: {
+      type: [Number, String],
+      required: true
+    }
   },
   data() {
     return {
+      projectId:null,
       activeStep: 1, // 当前激活的步骤
       steps: [
         {title: '功能点识别录入'},
@@ -70,43 +78,42 @@ export default {
         {title: '复杂度调整'},
         {title: '计算调整功能点'},
       ],
-      projectId: 1, // 新增1:用于存储项目ID，先假设为1
-      featurePoints: [{name: '', description: '', category: '', complexity: '', points: 0}], // 功能点数据
+      featurePoints: [], // 功能点数据
       isStepValid: false, // 当前步骤的验证状态
-      adjustmentFactors: [{name: '数据通信（Data Communications）', point: ''},
-        {name: '分布式数据处理（Distributed Data Processing）', point: ''},
-        {name: '性能（Performance）', point: ''},
-        {name: '重度配置（heavily used configuration）', point: ''},
-        {name: '处理速率（transaction rate）', point: ''},
-        {name: '在线数据输入（online data entry）', point: ''},
-        {name: '最终用户使用效率（end user efficiency）', point: ''},
-        {name: '在线升级（online update）', point: ''},
-        {name: '复杂处理（complex processing）', point: ''},
-        {name: '可重用性（Reusability）', point: ''},
-        {name: '易安装性（installation ease）', point: ''},
-        {name: '易操作性（operational ease）', point: ''},
-        {name: '多场所（multiple sites）', point: ''},
-        {name: '支持变更（facilitate change）', point: ''},
-      ], // 复杂度调整因子
+      adjustmentFactors: [
+{ projectId: this.projectId, measureName: '数据通信（Data Communications）', di: 0},
+  { projectId: this.projectId, measureName: '分布式数据处理（distributed Data Processing）', di: 0},
+  { projectId: this.projectId, measureName: '性能（Performance）', di: 0 },
+  { projectId: this.projectId, measureName: '重度配置（heavily used configuration）', di: 0 },
+  { projectId: this.projectId, measureName: '处理速率（transaction rate）', di: 0},
+  { projectId: this.projectId, measureName: '在线数据输入（online data entry）', di: 0 },
+  { projectId: this.projectId, measureName: '最终用户使用效率（end user efficiency）', di:0},
+  { projectId: this.projectId, measureName: '在线升级（online update）', di: 0 },
+  { projectId: this.projectId, measureName: '复杂处理（complex processing）', di: 0},
+  { projectId: this.projectId, measureName: '可重用性（Reusability）', di: 0},
+  { projectId: this.projectId, measureName: '易安装性（installation ease）', di: 0 },
+  { projectId: this.projectId, measureName: '易操作性（operational ease）', di:0},
+  { projectId: this.projectId, measureName: '多场所（multiple sites）', di:0},
+  { projectId: this.projectId, measureName: '支持变更（facilitate change）', di: 0 }
+], // 复杂度调整因子
       projectProgress: 0,
     };
   },
-  mounted() {
-    // 如果有路由参数，则覆盖默认的 projectId 值
-    if (this.$route.params.projectId) {
-      this.projectId = this.$route.params.projectId;
-    }
-    console.log('Project ID:', this.projectId); // 用于调试，确保参数已正确接收
-  },
+  created() {
+  console.log('完整的路由信息:', this.$route);
+  console.log('路由查询参数:', this.$route.query);
+
+  const projectIdParam = this.$route.query.projectId;
+  const converted = Number(projectIdParam);
+
+  console.log('原始参数:', projectIdParam);
+  console.log('转换结果:', converted);
+  console.log('是否为 NaN:', isNaN(converted));
+
+  this.projectId = !isNaN(converted) ? converted : null;
+  console.log('Project ID:', this.projectId); // 用于调试，确保参数已正确接收
+},
   methods: {
-    // 添加新的功能点
-    addFeaturePoint() {
-      this.featurePoints.push({name: '', description: '', category: '', complexity: ''});
-    },
-    // 删除功能点
-    deleteFeaturePoint(index) {
-      this.featurePoints.splice(index, 1);
-    },
     // 下一步按钮点击
     goToNextStep() {
       if (this.activeStep === 1 && !this.validateStep1()) {
@@ -121,14 +128,18 @@ export default {
         this.$message.error('请确保所有复杂度调整因子已填写！');
         return;
       }
-
+      
       if (this.activeStep === this.steps.length) {
-        // 当点击"返回"按钮时才跳转
-        this.$router.push({path: `/accessor3`});
-        console.log("确认")
+        if (this.$refs.Step5) {
+           this.$refs.Step5.gotoAssessedPage();
+           console.log("确认");
+         } else {
+           console.warn('Step5 组件未找到');
+         }
       } else {
         // 否则继续下一步
         this.activeStep++;
+
       }
     },
     // 上一步按钮点击
@@ -139,32 +150,28 @@ export default {
     },
     // 校验步骤一：检查功能点名称是否填写且唯一
     validateStep1() {
-      const names = this.featurePoints.map((point) => point.name.trim());
+      const names = this.featurePoints.map((point) => point.funcName.trim());
       return (
           this.featurePoints.length > 0 &&
-          names.every((name) => name !== '') &&
+          names.every((funcName) => funcName !== '') &&
           names.length === new Set(names).size
       );
     },
     // 校验步骤二：检查每个功能点是否选择了分类和复杂度
     validateStep2() {
-      return this.featurePoints.every(point => point.category && point.complexity);
+      return this.featurePoints.every(point => point.tag && point.diff);
     },
     // 校验步骤4
     validateStep4() {
   // 检查是否所有GSC因子都已评分
+  console.log(this.adjustmentFactors)
   return this.adjustmentFactors.every(factor => 
-    typeof factor.point === 'number' && factor.point >= 0 && factor.point <= 5
+    typeof factor.di === 'number' && factor.di >= 0 && factor.di <= 5
   );
 },
     handleValidation(isValid) {
       this.isStepValid = isValid;
     },
-
-    // 返回按钮的跳转方法
-    goBack() {
-      this.$router.push({path: '/home'}); // 返回到主页
-    }
   },
 };
 </script>
