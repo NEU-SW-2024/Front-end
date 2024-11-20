@@ -17,14 +17,14 @@
                   GSC计算
                 </h4>
                 <div class="formula-box">
-                  <span class="formula-text">GSC = Σ(DI)</span>
+                  <span class="formula-text">GSC = Σ(di)</span>
                 </div>
                 <div class="data-box">
-                  <p class="data-text">GSC = {{ measureData.GSC }}</p>
+                  <p class="data-text">GSC = {{ measureData.gsc }}</p>
                 </div>
                 <div class="result-box">
                   <span class="label">计算结果：</span>
-                  <span class="value">{{ measureData.GSC }}</span>
+                  <span class="value">{{ measureData.gsc }}</span>
                 </div>
               </div>
             </el-card>
@@ -42,11 +42,11 @@
                   <span class="formula-text">VAF = 0.65 + 0.01 × GSC</span>
                 </div>
                 <div class="data-box">
-                  <p class="data-text">GSC = {{ measureData.GSC }}</p>
+                  <p class="data-text">GSC = {{ measureData.gsc }}</p>
                 </div>
                 <div class="result-box">
                   <span class="label">VAF：</span>
-                  <span class="value">{{ (0.65 + 0.01 * measureData.GSC).toFixed(2) }}</span>
+                  <span class="value">{{ (0.65 + 0.01 * measureData.gsc).toFixed(2) }}</span>
                 </div>
               </div>
             </el-card>
@@ -64,11 +64,11 @@
                   <span class="formula-text">DFP = UFP × VAF</span>
                 </div>
                 <div class="data-box">
-                  <p class="data-text">UFP = {{ measureData.UPF }}</p>
+                  <p class="data-text">UFP = {{ measureData.upf }}</p>
                 </div>
                 <div class="result-box">
                   <span class="label">DFP：</span>
-                  <span class="value">{{ (measureData.UPF * (0.65 + 0.01 * measureData.GSC)).toFixed(2) }}</span>
+                  <span class="value">{{ (measureData.upf * (0.65 + 0.01 * measureData.gsc)).toFixed(2) }}</span>
                 </div>
               </div>
             </el-card>
@@ -80,7 +80,7 @@
       <el-col :span="12" class="section-col right-section">
         <div class="section-header">
           <el-icon><TrendCharts /></el-icon>
-          <h3 class="section-title">通过规模变更调整因子法调整功能点</h3>
+          <h3 class="section-title">规模变更调整因子法调整功能点数</h3>
         </div>
         <el-timeline class="calculation-timeline">
           <!-- CF因子卡片 -->
@@ -93,7 +93,7 @@
                 </h4>
                 <div class="result-box">
                   <span class="label">项目进度：</span>
-                  <span class="value">{{ measureData.CF }}</span>
+                  <span class="value">{{ measureData.cf }}</span>
                 </div>
               </div>
             </el-card>
@@ -111,11 +111,11 @@
                   <span class="formula-text">S = UPF × CF</span>
                 </div>
                 <div class="data-box">
-                  <p class="data-text">UPF = {{ measureData.UPF }}</p>
+                  <p class="data-text">UPF = {{ measureData.upf }}</p>
                 </div>
                 <div class="result-box">
                   <span class="label">S：</span>
-                  <span class="value">{{ (measureData.UPF * measureData.CF).toFixed(2) }}</span>
+                  <span class="value">{{ (measureData.upf * measureData.cf).toFixed(2) }}</span>
                 </div>
               </div>
             </el-card>
@@ -128,10 +128,15 @@
 
 <script>
 import axios from 'axios';
+import request from "@/utils/request.js";
 
 export default {
   name: "Step5",
   props: {
+    measureData: {
+      type: Object,
+      required: true
+    },
     adjustmentFactors: {
       type: Array,
       required: true
@@ -148,52 +153,89 @@ export default {
   data() {
     return {
       measureData: {
-        GSC: 0,
-        UPF: 0,
-        VAF: 0,
-        DFP: 0,
-        CF: 0,
-        S: 0,
+        gsc: 0,
+        upf: 0,
+        vaf: 0,
+        dfp: 0,
+        cf: 0,
+        s: 0,
         status: 0
       }
     };
   },
-  created() {
-    // 保存调整因素到后端
-    this.saveAdjustmentFactors();
-    // 获取项目相关信息
-    this.fetchData();
-  },
+  async created() {
+  // 在保存调整因子之前，给 adjustmentFactors 中每个对象的 projectId 赋值为 this.projectId
+  this.adjustmentFactors.forEach(item => {
+    item.projectId = this.projectId; // 将 projectId 设置为当前组件的 projectId
+  });
+
+  // 保存调整因素到后端并获取保存后的信息
+  const saveSuccess = await this.saveAdjustmentFactors();
+  if (saveSuccess) {
+    // 如果保存成功，获取最新的项目相关信息
+    await this.fetchData();
+  }
+},
+
   methods: {
     // 保存调整因子信息
-    async saveAdjustmentFactors() {
-      try {
-        const response = await axios.post(`/accessor/saveMeasure/${this.projectProgress}`, this.adjustmentFactors);
-        if (response.code===1) {
-          console.log("调整因子保存成功");
-        } else {
-        /*  console.error("保存失败:", response.data.message);*/
-        }
-      } catch (error) {
-     /*   console.error("保存调整因子出错:", error);*/
-      }
+    async gotoAssessedPage(){
+      console.log("gotoAssessedPage")
+      console.log("gotoAssessedPage"+ this.projectId)
+      this.$router.push({path: `/accessor3`,
+        query: { projectId: this.projectId }
+      });
     },
-
-    // 获取项目数据
     async fetchData() {
-      try {
-        const response = await axios.get('/accessor/getAll', {
-          params: { projectId: this.projectId }
-        });
-        if (response.data.measureRes) {
-          this.measureData = response.data.measureRes;
-        } else {
-         /* console.error("获取数据失败:", response.data.message);*/
-        }
-      } catch (error) {
-      /*  console.error("获取数据出错:", error);*/
-      }
+  try {
+    const response = await request({
+      url: '/dev-api/accessor/getAll',
+      method: 'get',
+      params: { projectId: this.projectId }
+    });
+    console.log(response.code)
+    if (Number(response.code) === 200) {
+      this.measureData = response.data.measureRes;
+      console.log("qqqqqq"+this.measureData.dfp)
+      this.$message.success('保存成功');
+      return true; // 返回成功标志
+    } else {
+      this.$message.error(response?.msg || '保存失败');
+      console.error('保存失败原因:', response); // 详细记录错误
+      return false;
     }
+  } catch (error) {
+    console.error('保存出现异常:', error); // 详细记录异常
+    this.$message.error('保存失败，请稍后重试');
+    return false;
+  }
+},
+async saveAdjustmentFactors() {
+  try {
+    const cf = this.projectProgress;
+    console.log("1-Adjustment Factors before request:", this.adjustmentFactors);
+
+    const response = await request({
+      url: `/dev-api/accessor/saveMeasure/${cf}`,
+      method: 'post',
+      data: this.adjustmentFactors,
+      headers: {
+        'Content-Type': 'application/json', // 设置请求头为 JSON
+      },
+    });
+
+    if (response.code === 200) {
+      console.log("调整因子保存成功");
+      return true; // 返回成功标志
+    } else {
+      console.error("保存失败");
+      return false; // 返回失败标志
+    }
+  } catch (error) {
+    console.error("保存调整因子出错:", error);
+    return false; // 返回失败标志
+  }
+},
   }
 };
 </script>

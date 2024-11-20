@@ -83,6 +83,12 @@ export const constantRoutes = [
         meta: { title: '个人中心', icon: 'user' }
       }
     ]
+  },
+  {
+    path: '/accessor2',
+    component: () => import('@/views/system/accessor2/index'),
+    name: 'Accessor2',
+    props: true
   }
 ]
 

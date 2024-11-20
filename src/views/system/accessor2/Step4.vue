@@ -15,11 +15,11 @@
         <div class="factor-index">{{ index + 1 }}.</div>
         
         <!-- GSC名称 -->
-        <div class="factor-name">{{ factor.name }}</div>
+        <div class="factor-name">{{ factor.measureName }}</div>
 
         <!-- 进度条 -->
         <el-slider
-            v-model="factor.point"
+            v-model="factor.di"
             :min="0"
             :max="5"
             :step="1"
@@ -27,17 +27,22 @@
             :disabled="isReadOnly"
             :marks="sliderMarks"
         ></el-slider>
-        <span class="score-display">{{ factor.point }}</span>
+        <span class="score-display">{{ factor.di }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import request from '@/utils/request';
 
 export default {
   name: 'Step4',
   props: {
+    featurePoints: {
+      type: Array,
+      required: true,
+    },
     adjustmentFactors: {
       type: Array,
       required: true,
@@ -62,6 +67,7 @@ export default {
         5: '强烈影响'
       },
       totalScore: 0,
+      featurePoints: this.featurePoints
     }
   },
   computed: {
@@ -69,9 +75,80 @@ export default {
       return this.step > 1;
     },
     totalScore() {
-      return this.adjustmentFactors.reduce((sum, factor) => sum + factor.point, 0);
+      return this.adjustmentFactors.reduce((sum, factor) => sum + factor.di, 0);
     }
   },
+  methods: {
+    convertDiffToNumber(diff) {
+      const diffMap = {
+        '低': 0,
+        '中': 1,
+        '高': 2
+      };
+      // 移除可能存在的"复杂度"文字
+      const cleanDiff = diff.replace('复杂度', '');
+      return diffMap[cleanDiff] ?? 0; // 如果没有匹配到，默认返回0
+    },
+    convertTag(tag) {
+      // 移除括号及其中的内容
+      return tag.split('(')[0];
+    },
+    async saveFeaturePoints() {
+
+try {
+  const formattedFeaturePoints = this.featurePoints.map(point => ({
+          projectId: point.projectId,
+          funcName: point.funcName,
+          funcDescr: point.funcDescr,
+          tag: this.convertTag(point.tag),
+          diff: this.convertDiffToNumber(point.diff), // 转换复杂度为数字
+          points: point.points || 0
+        }));
+        
+        console.log('发送到后端的数据:', formattedFeaturePoints);
+    // 发送 POST 请求到后端保存功能点
+    const response = await request({
+      url: '/dev-api/accessor/saveFunc',
+      method: 'post',
+      data: formattedFeaturePoints
+    })
+
+  if (response.code === 200) {
+    console.log('功能点保存成功:', response.data.feats);
+  } else {
+    console.error('保存功能点失败:', response.data.message);
+  }
+} catch (error) {
+  console.error('保存功能点时出错:', error);
+  this.$modal.msgError('保存失败，请重试');
+}
+},
+    // 添加新的功能点
+    addFeaturePoint() {
+  if (!this.projectId) {
+    this.$message.error('无法添加功能点：项目 ID 无效！');
+    return;
+  }
+
+  console.log('projectId:', this.projectId);
+  this.featurePoints.push({
+    projectId: this.projectId,
+    funcName: '',
+    funcDescr: '',
+    tag: '',
+    diff: '',
+    points: 0,
+  });
+
+  
+},
+  },
+  mounted() {
+    console.log(this.featurePoints);
+    if (this.featurePoints && this.featurePoints.length > 0) {
+      this.saveFeaturePoints();
+    }
+  }
 };
 </script>
 

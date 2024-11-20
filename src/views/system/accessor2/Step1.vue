@@ -30,7 +30,7 @@
             <div class="feature-form">
               <!-- 名称输入框 -->
               <el-input
-                  v-model="point.name"
+                  v-model="point.funcName"
                   placeholder="请输入功能点名称"
                   maxlength="10"
                   show-word-limit
@@ -47,7 +47,7 @@
 
               <!-- 描述输入框 -->
               <el-input
-                  v-model="point.description"
+                  v-model="point.funcDescr"
                   type="textarea"
                   :rows="2"
                   placeholder="请输入功能点描述"
@@ -62,7 +62,7 @@
       </el-row>
 
       <!-- 添加调整因子的按钮 (右侧) -->
-      <el-icon type="plus" class="add-point-btn" @click="addPoint" :disabled="isReadOnly">
+      <el-icon type="plus" class="add-point-btn" @click="addFeaturePoint" :disabled="isReadOnly">
         <Plus />
       </el-icon>
     </div>
@@ -73,6 +73,10 @@
 export default {
   name: 'Step1',
   props: {
+    projectId: {
+      type: [Number, String],
+      required: true
+    },
     featurePoints: {
       type: Array,
       default: () => [],
@@ -86,21 +90,40 @@ export default {
   computed: {
     // 是否所有功能点的名称都填写且唯一
     isValid() {
-      const names = this.featurePoints.map((point) => point.name.trim());
+      const names = this.featurePoints.map((point) => point.funcName.trim());
       return (
           this.featurePoints.length > 0 &&
-          names.every((name) => name !== '') &&
+          names.every((funcName) => funcName !== '') &&
           names.length === new Set(names).size &&
           this.validationErrors.every((error) => error === '')
       );
     },
   },
+  created() {
+    // 检查是否需要初始化一个默认功能点
+    if (this.featurePoints.length === 0) {
+      this.addFeaturePoint();
+    }
+  },
   methods: {
     // 添加新功能点
-    addPoint() {
-      this.featurePoints.push({ name: '', description: '' });
-      this.validationErrors.push(''); // 初始化对应的错误信息
-      // this.$emit('addPoint');
+    addFeaturePoint() {
+  if (!this.projectId) {
+    this.$message.error('无法添加功能点：项目 ID 无效！');
+    return;
+  }
+
+  console.log('projectId:', this.projectId);
+  this.featurePoints.push({
+    projectId: this.projectId,
+    funcName: '',
+    funcDescr: '',
+    tag: '',
+    diff: '',
+    points: 0,
+  });
+
+      console.log('功能点已更新:', this.featurePoints);
     },
     // 删除功能点
     deletePoint(index) {
@@ -109,11 +132,11 @@ export default {
       // this.$emit('deletePoint', index);
     },
     validateName(index) {
-      const name = this.featurePoints[index].name.trim();
+      const name = this.featurePoints[index].funcName.trim();
       if (!name) {
         this.validationErrors[index] = '功能点名称不能为空';
       } else if (
-          this.featurePoints.some((point, idx) => idx !== index && point.name.trim() === name)
+          this.featurePoints.some((point, idx) => idx !== index && point.funcName.trim() === name)
       ) {
         this.validationErrors[index] = '功能点名称不能重复';
       } else {
