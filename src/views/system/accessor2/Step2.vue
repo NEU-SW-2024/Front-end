@@ -11,7 +11,7 @@
           <!-- 功能点序号和名称 -->
           <el-row class="feature-inputs" :gutter="10" align="middle">
             <el-col :span="24">
-              <el-input v-model="point.name" type="text" placeholder="功能点名称" disabled>
+              <el-input v-model="point.funcName" type="text"disabled>
                 <template #prepend>
                   <!-- 功能点序号 -->
                   <span class="point-index">功能点 {{ index + 1 }}</span>

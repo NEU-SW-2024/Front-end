@@ -19,7 +19,7 @@
           <el-descriptions-item label="项目名称">{{ projectInfo.name }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ projectInfo.createTime }}</el-descriptions-item>
           <el-descriptions-item label="项目进度">
-            <el-tag type="info">已完成</el-tag>
+            <el-tag type="info">{{ getProjectStatus(calculations.cf) }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="GSC">
             <span class="final-fp">{{ calculations.gsc }}</span>
@@ -174,6 +174,16 @@ export default {
     }
   },
   methods: {
+    getProjectStatus(status) {
+      const statusMap = {
+        2: '项目立项',
+        1.5: '项目招标',
+        1.25: '项目早期',
+        1.26: '项目中期',
+        1.00: '项目完成',
+      }
+      return statusMap[status] || '待评估';
+    },
     handleBack() {
     this.$router.push('/accessor1')
   },
@@ -243,9 +253,20 @@ export default {
       } catch (error) {
         console.error("获取数据出错:", error);
       }
+    },
+
+    async getProject() {
+      const response = await request({
+        url: '/dev-api/accessor/getProject',
+        method: 'get',
+        params: { projectId: this.projectId }
+      });
+      if (response.code === 200) {
+        this.projectInfo = response.data;
+      } else {
+        console.error("获取项目信息失败:", response.msg);
+      }
     }
-
-
   },
   mounted() {
     console.log('完整的路由信息:', this.$route);
@@ -262,6 +283,7 @@ export default {
     console.log('Project ID:', this.projectId); // 用于调试，确保参数已正确接收
 
     this.fetchData();
+    this.getProject();
   }
 }
 </script>

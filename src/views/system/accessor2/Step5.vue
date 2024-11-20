@@ -93,7 +93,7 @@
                 </h4>
                 <div class="result-box">
                   <span class="label">项目进度：</span>
-                  <span class="value">{{ measureData.cf }}</span>
+                  <span class="value">{{ getProjectStatus(measureData.cf) }}</span>
                 </div>
               </div>
             </el-card>
@@ -178,6 +178,16 @@ export default {
 },
 
   methods: {
+    getProjectStatus(status) {
+      const statusMap = {
+        2: '项目立项',
+        1.5: '项目招标',
+        1.25: '项目早期',
+        1.26: '项目中期',
+        1.00: '项目完成',
+      }
+      return statusMap[status] || '待评估';
+    },
     // 保存调整因子信息
     async gotoAssessedPage(){
       console.log("gotoAssessedPage")
@@ -216,7 +226,7 @@ async saveAdjustmentFactors() {
     console.log("1-Adjustment Factors before request:", this.adjustmentFactors);
 
     const response = await request({
-      url: `/dev-api/accessor/saveMeasure/${cf}`,
+      url: `/dev-api/accessor/saveMeasure`,
       method: 'post',
       data: this.adjustmentFactors,
       headers: {

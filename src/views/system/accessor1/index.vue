@@ -84,7 +84,7 @@
         case 2:
           return '已完成';
         default:
-            return '未知';
+            return '待评估';
           }
         }
       },
@@ -169,15 +169,15 @@
 
 <style scoped>
 .main-container {
-  padding: 24px;
+  padding: 20px;
   min-height: calc(100vh - 60px);
-  max-width: 1400px;  /* 添加最大宽度 */
-  margin: 0 auto;     /* 居中容器 */
+  max-width: 1200px;  /* 缩小最大宽度 */
+  margin: 0 auto;
 }
 
 .search-wrapper {
-  max-width: 800px;
-  margin: 0 auto 32px;
+  max-width: 600px;  /* 缩小搜索框宽度 */
+  margin: 0 auto 24px;  /* 减少底部间距 */
   padding: 0 16px;
 }
 
@@ -187,21 +187,23 @@
 
 .card-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));  /* 更改为auto-fill */
+  gap: 20px;  /* 减小间距 */
   padding: 0 16px;
 }
 
 .project-card {
-  width: 300px; /* 修改这行：设置固定宽度 */
-  height: 300px; /* 添加这行：设置固定高度 */
+  height: 220px;  /* 减小卡片高度 */
   transition: all 0.3s ease;
-  position: relative;  /* 添加这行，作为定位上下文 */
-  padding-bottom: 60px;  /* 为底部按钮预留空间 */
+  position: relative;
+  margin: 0 auto;  /* 居中对齐 */
+  width: 100%;    /* 宽度占满网格 */
+  max-width: 320px;  /* 限制最大宽度 */
+  border-radius: 10px;
 }
-.project-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+.card-content {
+  height: 100%;
+  padding: 16px;  /* 统一内边距 */
 }
 
 .card-content {

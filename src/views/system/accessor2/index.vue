@@ -45,6 +45,7 @@
 </template>
 
 <script>
+import { Refresh } from '@element-plus/icons-vue';
 import Step1 from './Step1.vue';
 import Step2 from './Step2.vue';
 import Step3 from "./Step3.vue";
@@ -131,6 +132,12 @@ export default {
       
       if (this.activeStep === this.steps.length) {
         if (this.$refs.Step5) {
+          // 清空数据
+          this.featurePoints = [];
+          this.adjustmentFactors = [];
+          this.activeStep = 1;
+          // 关闭原来页面
+          // this.$router.go(-1);
            this.$refs.Step5.gotoAssessedPage();
            console.log("确认");
          } else {
@@ -173,6 +180,8 @@ export default {
       this.isStepValid = isValid;
     },
   },
+  mounted() {
+  }
 };
 </script>
 
