@@ -120,6 +120,19 @@ export const constantRoutes = [
 			name:'FinalResult',
 			component: () => import('@/views/standard/final-result/index.vue'),
 			meta:{title:'结果评估测试'}
+		},
+		{
+			path:'result-history',
+			name:'ResultHistory',
+			component: () => import('@/views/standard/result-history/index.vue'),
+			meta:{title:'结果历史列表',icon:'history-svgrepo-com'}
+		},
+		{
+			path:'result-detail/:id',
+			name:'ResultDetail',
+			component: () => import('@/views/standard/result-detail/index.vue'),
+			hidden:true,
+			meta:{title:'结果详情'}
 		}
       ]
     }
