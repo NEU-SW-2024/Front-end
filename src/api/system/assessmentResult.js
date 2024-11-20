@@ -46,8 +46,49 @@ export function delAssessmentResult(resId) {
 //获得项目列表
 export function listProjects(query){
   return request({
-    url: `/accessor/getAll?${projectId}`,
+    url: `/dev-api/accessor/getAll?${projectId}`,
     method: 'get',
     params: query // 通过查询参数传递筛选条件
   })
+}
+
+//获取所有待评估项目
+export function  listFeats(query){
+	return request({
+		url:`/dev-api/accessor/getPendingProjects`,
+		method:'get',
+		params: query // 通过查询参数传递筛选条件
+	})
+	
+}
+
+// 计算评估结果
+export function calculateResult(data) {
+  return request({
+    url: '/system/assessment-standards/calculate',
+    method: 'post',
+    data: {
+      projectId: data.projectId,  // 项目ID
+      stdId: data.stdId          // 标准ID
+    }
+  })
+}
+
+// 获取项目DFP
+export function getProjectDFP(projectId) {
+  return request({
+    url: '/dev-api/accessor/getDFP',
+    method: 'get',
+    params: {
+      projectId
+    }
+  })
+}
+
+export function getProjectName(projectId) {
+ return request({
+   url: '/dev-api/accessor/getProjectName',
+   method: 'get',
+   params: { projectId }
+ })
 }

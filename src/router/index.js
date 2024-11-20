@@ -113,12 +113,14 @@ export const constantRoutes = [
 			path:'choose-standard',
 			name:'ChooseStandard',
 			component: () => import('@/views/standard/choose-standard/index.vue'),
+			hidden:true,
 			meta:{title:'选择标准测试'}
 		},
 		{
 			path:'final-result',
 			name:'FinalResult',
 			component: () => import('@/views/standard/final-result/index.vue'),
+			hidden:true,
 			meta:{title:'结果评估测试'}
 		},
 		{

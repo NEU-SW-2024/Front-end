@@ -1,5 +1,5 @@
 <template>
-  <div class="main">
+  <div class="main-container">
     <!-- 搜索框部分 -->
     <div class="search-wrapper">
       <el-input 
@@ -146,12 +146,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.main {
-  padding: 24px 0;  /* 修改为上下padding */
-  margin: 0; /* 确保没有margin */
+.main-container {
+  padding: 24px;
   background: #f5f7fa;
   min-height: 100vh;
-  width: 100%; /* 添加宽度100% */
 }
 
 /* 搜索框样式 */
@@ -171,13 +169,13 @@ onMounted(() => {
 .card-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0;
+  padding: 0 24px;
 }
 
 .project-radio-group {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 稍微减小最小宽度 */
-    gap: 16px; /* 减小间距 */
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;

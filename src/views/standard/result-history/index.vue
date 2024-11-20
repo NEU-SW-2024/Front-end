@@ -22,6 +22,27 @@
       </el-row>
     </header>
 
+    <!-- 批量操作工具栏 -->
+    <div class="batch-toolbar" v-show="results.length">
+      <el-checkbox
+        v-model="isAllSelected"
+        :indeterminate="isIndeterminate"
+        @change="handleCheckAllChange"
+      >
+        全选
+      </el-checkbox>
+      <el-button
+        type="danger"
+        :disabled="!selectedIds.length"
+        @click="confirmBatchDelete"
+      >
+        批量删除
+      </el-button>
+      <span class="selected-count" v-if="selectedIds.length">
+        已选择 {{ selectedIds.length }} 项
+      </span>
+    </div>
+
     <!-- 评估结果卡片列表 -->
     <section class="card-section">
       <el-row :gutter="20">
@@ -32,9 +53,22 @@
           v-for="result in results" 
           :key="result.resId"
         >
-          <el-card class="result-card" :body-style="{ padding: '0px' }">
+          <el-card 
+            class="result-card" 
+            :body-style="{ padding: '0px' }"
+            :class="{ 'is-selected': selectedIds.includes(result.resId) }"
+          >
+            <div class="card-selection">
+              <el-checkbox
+                v-model="result.isSelected"
+                @change="(val) => handleSelectChange(val, result.resId)"
+              />
+            </div>
             <div class="card-header">
               <h3 class="card-title">项目 #{{ result.projectId }}</h3>
+			  <h3 class="card-title">
+			    {{ projectNames[result.projectId] || '未知项目' }} 
+			  </h3>
               <div class="card-actions">
                 <el-button
                   type="danger"
@@ -85,17 +119,47 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Delete } from '@element-plus/icons-vue'
-import { listAssessmentResults, delAssessmentResult } from '@/api/system/assessmentResult'
+import { listAssessmentResults, delAssessmentResult, getProjectName } from '@/api/system/assessmentResult'
 
 const router = useRouter()
 const query = ref('')
 const results = ref([])
+const selectedIds = ref([])
+const projectNames = ref({}) // 用于存储项目ID和名称的映射
 
-// 格式化数字为金额格式
+// 计算全选和半选状态
+const isAllSelected = computed(() => {
+  return results.value.length > 0 && selectedIds.value.length === results.value.length
+})
+
+const isIndeterminate = computed(() => {
+  return selectedIds.value.length > 0 && selectedIds.value.length < results.value.length
+})
+
+// 处理全选/取消全选
+const handleCheckAllChange = (val) => {
+  results.value.forEach(result => {
+    result.isSelected = val
+  })
+  selectedIds.value = val ? results.value.map(item => item.resId) : []
+}
+
+// 处理单个选择变更
+const handleSelectChange = (checked, resId) => {
+  if (checked) {
+    selectedIds.value.push(resId)
+  } else {
+    const index = selectedIds.value.indexOf(resId)
+    if (index > -1) {
+      selectedIds.value.splice(index, 1)
+    }
+  }
+}
+
 const formatNumber = (num) => {
   return num ? num.toLocaleString('zh-CN', {
     minimumFractionDigits: 2,
@@ -103,7 +167,6 @@ const formatNumber = (num) => {
   }) : '0.00'
 }
 
-// 格式化日期
 const formatDate = (date) => {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('zh-CN', {
@@ -113,17 +176,54 @@ const formatDate = (date) => {
   })
 }
 
-// 获取评估结果列表
 const fetchResults = async () => {
   try {
     const response = await listAssessmentResults({ projectId: query.value })
-    results.value = response.data
+    results.value = response.data.map(item => ({
+      ...item,
+      isSelected: false
+    }))
+    
+    // 获取所有项目的名称
+    for (const result of results.value) {
+      const nameRes = await getProjectName(result.projectId)
+      projectNames.value[result.projectId] = nameRes.msg
+    }
   } catch (error) {
     ElMessage.error('获取评估结果列表失败')
   }
 }
 
-// 删除评估结果
+// 批量删除确认
+const confirmBatchDelete = () => {
+  if (selectedIds.value.length === 0) return
+  
+  ElMessageBox.confirm(
+    `确定要删除选中的 ${selectedIds.value.length} 个评估结果吗？此操作不可恢复`,
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+    .then(async () => {
+      try {
+        // 这里假设后端提供了批量删除的API，如果没有，则需要循环调用单个删除
+        const deletePromises = selectedIds.value.map(id => delAssessmentResult(id))
+        await Promise.all(deletePromises)
+        
+        ElMessage.success('批量删除成功')
+        fetchResults()
+      } catch (error) {
+        ElMessage.error('批量删除失败')
+      }
+    })
+    .catch(() => {
+      ElMessage.info('已取消删除')
+    })
+}
+
 const confirmDelete = (resId) => {
   ElMessageBox.confirm(
     '确定要删除该评估结果吗？此操作不可恢复',
@@ -148,12 +248,22 @@ const confirmDelete = (resId) => {
     })
 }
 
-// 查看详情
 const viewDetail = (resId) => {
-  router.push(`/standards/result-detail/${resId}`)
+  const result = results.value.find(r => r.resId === resId)
+  if (!result) {
+    ElMessage.error('未找到相关评估结果')
+    return
+  }
+  
+  router.push({
+    path: `/standards/result-detail/${resId}`,
+    query: {
+      projectId: result.projectId,
+      standardId: result.stdId
+    }
+  })
 }
 
-// 页面加载时获取数据
 onMounted(() => {
   fetchResults()
 })
@@ -179,6 +289,21 @@ onMounted(() => {
   margin: 0 auto;
 }
 
+.batch-toolbar {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.selected-count {
+  color: #606266;
+  font-size: 14px;
+}
+
 .card-section {
   margin-top: 24px;
 }
@@ -197,6 +322,7 @@ onMounted(() => {
   border: none;
   box-shadow: 0 4px 12px 0 rgba(0,0,0,0.05);
   margin-bottom: 24px;
+  position: relative;
 }
 
 .result-card:hover {
@@ -204,8 +330,19 @@ onMounted(() => {
   box-shadow: 0 8px 16px 0 rgba(0,0,0,0.1);
 }
 
+.result-card.is-selected {
+  border: 2px solid var(--el-color-primary);
+}
+
+.card-selection {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+}
+
 .card-header {
-  padding: 16px;
+  padding: 16px 16px 16px 48px;
   background: #f8f9fa;
   display: flex;
   justify-content: space-between;

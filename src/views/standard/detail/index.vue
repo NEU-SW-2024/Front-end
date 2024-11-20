@@ -101,7 +101,7 @@
 
     <!-- 操作按钮 -->
     <div class="action-buttons">
-      <el-button type="primary" @click="goBack">返回列表</el-button>
+      <el-button type="primary" @click="goBack">返回</el-button>
     </div>
 	
 	<!-- 新增修改对话框 -->
@@ -389,7 +389,7 @@ const submitForm = async () => {
 
 // 返回列表方法
 const goBack = () => {
-  router.push('/standards/list');
+  router.back();
 };
 </script>
 

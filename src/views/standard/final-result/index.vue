@@ -23,18 +23,14 @@
     <div class="equation-section">
       <el-card class="equation-card" shadow="hover">
         <div class="equation-container">
-          <!-- 添加说明标题 -->
           <h3 class="equation-title">软件开发费用计算公式说明</h3>
           
-          <!-- 添加公式前说明文字 -->
           <div class="equation-description">
             <p>本评估系统基于以下公式计算软件开发费用（SDC）：</p>
           </div>
           
-          <!-- 公式图片 -->
           <img src="./images/equation.svg" alt="公式" class="equation-image" />
           
-          <!-- 添加公式解释 -->
           <div class="equation-explanation">
             <div class="explanation-grid">
               <div class="explanation-item">
@@ -55,7 +51,6 @@
               </div>
             </div>
             
-            <!-- 补充说明 -->
             <p class="additional-info">注：ESDC为根据质量等级和风险因子调整后的最终软件开发费用</p>
           </div>
         </div>
@@ -69,16 +64,16 @@
             <span class="details-title">特征取值明细</span>
           </div>
         </template>
-        <!-- 先显示 SDC 和 ESDC -->
+        <!-- SDC 和 ESDC 显示 -->
         <el-descriptions border :column="2" class="details-content highlight-row">
           <el-descriptions-item label="SDC" class="highlight-item">
-            <span class="highlight-value">588,618.54</span>
+            <span class="highlight-value">{{ formatCurrency(calculationResult.projectSDC) }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="ESDC" class="highlight-item">
-            <span class="highlight-value">588,618.54</span>
+            <span class="highlight-value">{{ formatCurrency(calculationResult.projectESDC) }}</span>
           </el-descriptions-item>
         </el-descriptions>
-        <!-- 其他详情信息使用3列布局 -->
+        <!-- 其他详情信息 -->
         <el-descriptions border :column="3" class="details-content">
           <el-descriptions-item 
             v-for="item in filteredDetails" 
@@ -93,46 +88,146 @@
 
     <!-- 底部操作按钮 -->
     <div class="actions">
-      <el-button type="primary" class="action-button">更改特征取值</el-button>
-      <el-button type="success" class="action-button">保存</el-button>
+      <el-button type="primary" class="action-button" @click="goBack">返回修改</el-button>
+      <el-button 
+        type="success" 
+        class="action-button" 
+        @click="saveResult"
+        :loading="saving"
+      >
+        保存结果
+      </el-button>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      cards: [
-        { title: "SDC", value: "588,618", unit: "元" },
-        { title: "ESDC", value: "588,618", unit: "元" },
-        { title: "功能点数", value: "111", unit: "点" },
-        { title: "创建时间", value: "2024-01-01", unit: "" },
-        { title: "更新时间", value: "2024-01-15", unit: "" }
-      ],
-      details: [
-        { label: "类别", value: "软件规模度量" },
-        { label: "特征", value: "管理容量的功能点数" },
-        { label: "取值", value: "794" },
-        { label: "PDR", value: "123" },
-        { label: "软件因素调整因子SWF", value: "123" },
-        { label: "开发因素调整因子RDF", value: "1" },
-        { label: "人月折算系数", value: "174" },
-        { label: "行业非人力成本", value: "20,000" },
-        { label: "直接非人力成本DNC(元)", value: "0" },
-        { label: "RSK", value: "1" },
-        { label: "质量等级因子(Q)", value: "1" },
-        { label: "SDC", value: "588,618.54" },
-        { label: "ESDC", value: "588,618.54" }
-      ]
-    };
-  },
-  computed: {     // 这里添加 computed 属性
-    filteredDetails() {
-      return this.details.filter(item => !['SDC', 'ESDC'].includes(item.label));
-    }
+<script setup>
+import { ref, onMounted, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { calculateResult, addAssessmentResult , getProjectDFP} from '@/api/system/assessmentResult';
+
+const router = useRouter();
+const route = useRoute();
+const saving = ref(false);
+const calculationResult = ref({
+  projectSDC: 0,
+  projectESDC: 0,
+  createdAt: null,
+  updatedAt: null
+});
+const projectDFP = ref(null);
+
+
+const loadProjectDFP = async () => {
+  try {
+	// console.log("1");
+    const { projectId } = route.query;
+	// console.log("2");
+    const response = await getProjectDFP(projectId);
+	// console.log("3");
+    projectDFP.value = response.data;
+	
+  } catch (error) {
+    ElMessage.error('功能点数据获取失败');
   }
 };
+
+// 格式化金额
+const formatCurrency = (value) => {
+  return value ? value.toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }) : '0.00';
+};
+
+// 格式化日期
+const formatDate = (date) => {
+  if (!date) return '-';
+  return new Date(date).toLocaleDateString('zh-CN');
+};
+
+// 顶部卡片数据
+const cards = computed(() => [
+	{ title: "功能点", value: projectDFP.value || '-', unit: "FP" },
+  { title: "SDC", value: formatCurrency(calculationResult.value.projectSDC), unit: "元" },
+  { title: "ESDC", value: formatCurrency(calculationResult.value.projectESDC), unit: "元" },
+  { title: "创建时间", value: formatDate(calculationResult.value.createdAt), unit: "" },
+  { title: "更新时间", value: formatDate(calculationResult.value.updatedAt), unit: "" }
+]);
+
+// 加载计算结果
+const loadCalculationResult = async () => {
+  try {
+    const { projectId, standardId } = route.query;
+    if (!projectId || !standardId) {
+      ElMessage.error('参数不完整');
+      router.push('/standards/choose-standard');
+      return;
+    }
+
+    const response = await calculateResult({
+      projectId,
+      stdId: standardId
+    });
+    calculationResult.value = response.data;
+	// console.log(calculationResult.value);
+  } catch (error) {
+    ElMessage.error('计算结果获取失败');
+  }
+};
+
+// 保存结果
+const saveResult = async () => {
+  try {
+    saving.value = true;
+    const { projectId, standardId } = route.query;
+    
+    await addAssessmentResult({
+      projectId: parseInt(projectId),
+      stdId: parseInt(standardId),
+      projectSDC: calculationResult.value.projectSDC,
+      projectESDC: calculationResult.value.projectESDC
+    });
+
+    ElMessage.success('保存成功');
+    router.push('/standards/calculation'); // 保存成功后返回列表页
+  } catch (error) {
+    ElMessage.error('保存失败');
+  } finally {
+    saving.value = false;
+  }
+};
+
+// 返回上一页
+const goBack = () => {
+  router.back();
+};
+
+// Call in onMounted
+onMounted(() => {
+  loadProjectDFP();
+  loadCalculationResult();
+});
+
+// 其他数据保持不变
+const details = ref([
+  { label: "类别", value: "软件规模度量" },
+  { label: "特征", value: "管理容量的功能点数" },
+  { label: "取值", value: "794" },
+  { label: "PDR", value: "123" },
+  { label: "软件因素调整因子SWF", value: "123" },
+  { label: "开发因素调整因子RDF", value: "1" },
+  { label: "人月折算系数", value: "174" },
+  { label: "行业非人力成本", value: "20,000" },
+  { label: "直接非人力成本DNC(元)", value: "0" },
+  { label: "RSK", value: "1" },
+  { label: "质量等级因子(Q)", value: "1" }
+]);
+
+const filteredDetails = computed(() => {
+  return details.value;
+});
 </script>
 
 <style scoped>
