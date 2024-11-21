@@ -175,7 +175,7 @@ export default {
           return;
         }
         if(project.status === '0' || project.status ==='3'){
-          this.$message.error("为待评估/待计算状态，不可下载文件");
+          this.$message.error("为待评估/待计算状态，不可生成报告");
           return;
         }
 
@@ -228,6 +228,10 @@ export default {
 
     // 触发生成文档确认框
     generateReport(project) {
+      if(project.status === '0' || project.status ==='3'){
+        this.$message.error("为待评估/待计算状态，不可生成报告，请先完成评估");
+        return;
+      }
       if (project.report_status === "已生成报告") {
         this.$message({
           message: "报告已生成，无需重复生成。",

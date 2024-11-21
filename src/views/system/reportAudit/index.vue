@@ -318,8 +318,8 @@ export default {
           this.$message.error("未找到对应项目数据");
           return;
         }
-        if (project.status === '0' || project.status === '3') {
-          this.$message.error("为待评估/待计算状态，不可下载文件");
+        if(!project.report_status){
+          this.$message.error("该项目暂未生成报告！请联系评估师:"+project.accessor);
           return;
         }
 
