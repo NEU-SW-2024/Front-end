@@ -17,18 +17,6 @@
       </div>
     </div>
 
-    <div class="chart-card">
-      <el-card class="chart-card-item">
-        <div class="chart-container">
-          <!-- 饼状图展示 -->
-          <div id="pie-chart" style="width: 600px; height: 400px; margin: 0 auto;"></div>
-
-          <!-- 折线图 -->
-          <div id="line-chart" style="width: 600px; height: 400px; margin-left: 20px;"></div>
-        </div>
-      </el-card>
-    </div>
-
     <!-- 项目卡片展示 -->
     <div class="card-container">
       <el-card
@@ -56,14 +44,14 @@
           </div>
         </div>
         <div class="file-actions">
-          <button @click="downloadFile(project.project_id)" class="download-button">下载文件</button>
+          <el-button @click="downloadFile(project.project_id)" type="primary" plain >下载文件</el-button>
 
         </div>
         <template #footer>
           <div class="card-footer">
             <div v-if="project.status === '1'" class="action-buttons">
-              <button @click="openApproveDialog(project)" class="approve-button">批准</button>
-              <button @click="rejectProject(project)" class="reject-button">驳回</button>
+              <el-button @click="openApproveDialog(project)" type="success" plain>批准</el-button>
+              <el-button @click="rejectProject(project)"  type="danger" plain>驳回</el-button>
             </div>
 
           </div>
@@ -82,21 +70,30 @@
       />
     </div>
 
+    <div class="chart-card">
+      <el-card class="chart-card-item">
+        <div class="chart-container">
+          <!-- 饼状图展示 -->
+          <div id="pie-chart" style="width: 600px; height: 400px; margin: 0 auto;"></div>
+
+          <!-- 折线图 -->
+          <div id="line-chart" style="width: 600px; height: 400px; margin-left: 20px;"></div>
+        </div>
+      </el-card>
+    </div>
+
+
     <el-dialog
         v-model="rejectDialogVisible"
         title="确认驳回"
         width="30%"
     >
-      <p>确定要驳回该项目吗？</p >
+      <p>确定要驳回该项目吗？</p>
       <template #footer>
         <el-button @click="rejectDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmRejection">确认</el-button>
       </template>
     </el-dialog>
-
-
-
-
 
 
     <el-dialog
@@ -278,217 +275,223 @@ export default {
         const response = await approveProject(this.currentProject.project_id); // 调用后端接口
         this.$message.success('项目批准成功！');
         await this.fetchProjects(); // 重新获取项目列表，确保数据实时更新
-    } catch(error) {
-      console.error('批准项目时发生错误:', error);
-      this.$message.error('批准失败，请稍后再试！');
-    } finally {
-      this.approveDialogVisible = false; // 无论成功或失败，关闭对话框
-    }
-  },
-  // 打开驳回对话框
-  rejectProject(project) {
-    this.currentProject = project;
-    this.rejectDialogVisible = true;
-  },
+      } catch (error) {
+        console.error('批准项目时发生错误:', error);
+        this.$message.error('批准失败，请稍后再试！');
+      } finally {
+        this.approveDialogVisible = false; // 无论成功或失败，关闭对话框
+      }
+    },
+    // 打开驳回对话框
+    rejectProject(project) {
+      this.currentProject = project;
+      this.rejectDialogVisible = true;
+    },
 
-  // 确认驳回（后端联调）
-  async confirmRejection() {
-    if (!this.currentProject) {
-      this.$message.error('未选定项目！');
-      return;
-    }
-    try {
-      const response = await rejectProject(this.currentProject.project_id);
-      this.$message.success('项目已驳回！');
-      await this.fetchProjects(); // 重新获取项目列表，刷新页面数据
-    } catch (error) {
-      console.error('驳回项目时发生错误:', error);
-      this.$message.error('驳回失败，请稍后再试！');
-    } finally {
-      this.rejectDialogVisible = false; // 无论成功或失败，关闭对话框
-    }
-  },
-  showDetails(project) {
-    this.currentProject = project;
-    this.detailsDialogVisible = true;
-  },
-  // 下载文件的方法
-  async downloadFile(projectId) {
-    try {
-      // 找到对应项目数据
-      const project = this.projects.find((p) => p.project_id === projectId);
-      if (!project) {
-        this.$message.error("未找到对应项目数据");
+    // 确认驳回（后端联调）
+    async confirmRejection() {
+      if (!this.currentProject) {
+        this.$message.error('未选定项目！');
         return;
       }
-      if(project.status === '0' || project.status ==='3'){
-        this.$message.error("为待评估/待计算状态，不可下载文件");
-        return;
+      try {
+        const response = await rejectProject(this.currentProject.project_id);
+        this.$message.success('项目已驳回！');
+        await this.fetchProjects(); // 重新获取项目列表，刷新页面数据
+      } catch (error) {
+        console.error('驳回项目时发生错误:', error);
+        this.$message.error('驳回失败，请稍后再试！');
+      } finally {
+        this.rejectDialogVisible = false; // 无论成功或失败，关闭对话框
       }
+    },
+    showDetails(project) {
+      this.currentProject = project;
+      this.detailsDialogVisible = true;
+    },
+    // 下载文件的方法
+    async downloadFile(projectId) {
+      try {
+        // 找到对应项目数据
+        const project = this.projects.find((p) => p.project_id === projectId);
+        if (!project) {
+          this.$message.error("未找到对应项目数据");
+          return;
+        }
+        if (project.status === '0' || project.status === '3') {
+          this.$message.error("为待评估/待计算状态，不可下载文件");
+          return;
+        }
 
-      // 获取模板文件
-      const response = await axios.get("/report/template2.docx", {responseType: "arraybuffer"});
-      const templateContent = new Uint8Array(response.data); // 模板内容
+        // 获取模板文件
+        const response = await axios.get("/report/template2.docx", {responseType: "arraybuffer"});
+        const templateContent = new Uint8Array(response.data); // 模板内容
 
-      // 数据映射（与模板占位符对应）
-      const data = {
-        project_id: project.project_id || "",
-        tenant_id: project.tenant_id || "",
-        name: project.name || "",
-        accessor: project.accessor || "",
-        auditor: project.auditor || "",
-        project_status: project.project_status || "",
-        create_time: project.create_time || "",
-        features: project.features.map((feature) => ({
-          feat_name: feature.feat_name || "",
-          comment: feature.comment || "",
-        })),
-        measures: project.measures.map((measure) => ({
-          measure_name: measure.measure_name || "",
-          GSC: measure.GSC || "",
-        })),
-        total_cost: project.total_cost || "",
-        labor_cost: project.labor_cost || "",
-        risk_cost: project.risk_cost || "",
-        quality_cost: project.quality_cost || "",
-        dev_service_cost: project.dev_service_cost || "",
-        adjusted_dev_service_cost: project.adjusted_dev_service_cost || "",
-        created_at: project.created_at || "",
-        s: project.s || "",
-        vaf: project.vaf || "",
-        upf: project.upf || "",
-        dfp: project.dfp || "",
-        gsc: project.gsc || "",
+        const data = {
+          project_id: project.project_id || "",
+          tenant_id: project.tenant_id || "",
+          name: project.name || "",
+          accessor: project.accessor || "",
+          auditor: project.auditor || "",
+          project_status: project.project_status || "",
+          create_time: project.create_time || "",
+          features: project.features.map((feature) => ({
+            feat_name: feature.feat_name || "",
+            comment: feature.comment || "",
+          })),
+          measures: project.measures.map((measure) => ({
+            measure_name: measure.measure_name || "",
+            DI: measure.di || "",
+          })),
+          status: project.status === 0 ? "待评估" : project.status === 1 ? "待审核" : project.status === 2 ? "完成" : "待计算",
+          total_cost: project.total_cost || "",
+          labor_cost: project.labor_cost || "",
+          risk_cost: project.risk_cost || "",
+          quality_cost: project.quality_cost || "",
+          dev_service_cost: project.dev_service_cost || "",
+          adjusted_dev_service_cost: project.adjusted_dev_service_cost || "",
+          created_at: project.created_at || "",
+          s: project.s || "",
+          vaf: project.vaf || "",
+          upf: project.upf || "",
+          dfp: project.dfp || "",
+          gsc: project.gsc || "",
+        };
+        // 调用 generateDocx 方法
+        const output = generateDocx(templateContent, data);
+
+        // 保存文件
+        saveAs(output, `${project.name}_项目文档.docx`);
+        this.$message.success("文件已生成并下载");
+      } catch (error) {
+        console.error("文件生成失败:", error);
+        this.$message.error("文件生成失败，请稍后再试！");
+      }
+    },
+
+
+    handlePageChange(page) {
+      this.currentPage = page;
+    },
+    togglePopover(projectId) {
+      // 切换弹出层的显示状态
+      this.popoverVisible = this.popoverVisible === projectId ? null : projectId;
+    },
+
+    getStatusText(status) {
+      const statusMap = {
+        0: "待评估",
+        1: "待审核",
+        2: "完成",
+        3: "未计算"
       };
-
-      // 调用 generateDocx 方法
-      const output = generateDocx(templateContent, data);
-
-      // 保存文件
-      saveAs(output, `${project.name}_项目文档.docx`);
-      this.$message.success("文件已生成并下载");
-    } catch (error) {
-      console.error("文件生成失败:", error);
-      this.$message.error("文件生成失败，请稍后再试！");
-    }
-  },
+      return statusMap[status] || "未知状态"; // 默认返回未知状态
+    },
 
 
-  handlePageChange(page) {
-    this.currentPage = page;
-  },
-  togglePopover(projectId) {
-    // 切换弹出层的显示状态
-    this.popoverVisible = this.popoverVisible === projectId ? null : projectId;
-  },
+    updateChart() {
+      const reviewed = this.projects.filter((p) => p.status === '2').length;
+      const unreviewed = this.projects.filter((p) => p.status === '1').length;
+      const uncalculated = this.projects.filter((p) => p.status === '3').length;
+      const unassessed = this.projects.filter((p) => p.status === '0').length;
 
-  getStatusText(status) {
-    const statusMap = {
-      0: "待评估",
-      1: "待审核",
-      2: "完成",
-      3: "未计算"
-    };
-    return statusMap[status] || "未知状态"; // 默认返回未知状态
-  },
+      const chartDom = document.getElementById("pie-chart");
+      if (!chartDom) return;
+      const chart = echarts.init(chartDom);
+      chart.setOption({
+        title: {
+          text: "项目状态分布",
+          subtext: `总计项目数：${this.projects.length}`,
+          left: "center",
+        },
+        tooltip: {
+          trigger: "item",
+        },
+        series: [
+          {
+            name: "项目状态",
+            type: "pie",
+            center: ["50%", "55%"], // 将饼状图垂直位置向下移动
+            data: [
+              {value: reviewed, name: "完成"},
+              {value: unreviewed, name: "待审核"},
+              {value: uncalculated, name: "待计算"},
+              {value: unassessed, name: "待评估"},
+            ],
 
-
-  updateChart() {
-    const reviewed = this.projects.filter((p) => p.status === '2').length;
-    const unreviewed = this.projects.filter((p) => p.status === '1').length;
-    const uncalculated = this.projects.filter((p) => p.status === '3').length;
-    const unassessed = this.projects.filter((p) => p.status === '0').length;
-
-    const chartDom = document.getElementById("pie-chart");
-    if (!chartDom) return;
-    const chart = echarts.init(chartDom);
-    chart.setOption({
-      title: {
-        text: "项目状态分布",
-        subtext: `总计项目数：${this.projects.length}`,
-        left: "center",
-      },
-      tooltip: {
-        trigger: "item",
-      },
-      series: [
-        {
-          name: "项目状态",
-          type: "pie",
-          data: [
-            {value: reviewed, name: "完成"},
-            {value: unreviewed, name: "待审核"},
-            {value: uncalculated, name: "待计算"},
-            {value: unassessed, name: "待评估"},
-          ],
-
-          itemStyle: {
-            normal: {
-              color: (params) => {
-                // 自定义颜色数组
-                const colors = ["#7fd5fb", "#91affe", "#1E90FF", "#6495ED"];
-                return colors[params.dataIndex]; // 根据数据索引选择颜色
+            itemStyle: {
+              normal: {
+                color: (params) => {
+                  // 自定义颜色数组
+                  const colors = ["#7fd5fb", "#91affe", "#1E90FF", "#6495ED"];
+                  return colors[params.dataIndex]; // 根据数据索引选择颜色
+                },
               },
             },
           },
+        ],
+      });
+
+      // 更新折线图
+      const lineChartDom = document.getElementById("line-chart");
+      if (!lineChartDom) return;
+
+      const lineChart = echarts.init(lineChartDom);
+
+      // 数据键和显示名称
+      const costMetrics = [
+        {key: "total_cost", name: "总造价"},
+        {key: "labor_cost", name: "人工成本"},
+        {key: "risk_cost", name: "风险成本"},
+        {key: "quality_cost", name: "质量成本"},
+        {key: "dev_service_cost", name: "开发服务费用"},
+        {key: "adjusted_dev_service_cost", name: "调整后开发费用"},
+      ];
+
+      // x 轴显示这些指标的名称
+      const xAxisData = costMetrics.map((metric) => metric.name);
+
+      // 构造每个项目的折线图数据
+      const seriesData = this.projects.map((project) => ({
+        name: project.name,
+        type: "line",
+        data: costMetrics.map((metric) => project[metric.key] || 0), // 取出每个项目的相应值
+      }));
+
+      lineChart.setOption({
+        title: {
+          text: "项目成本趋势",
+          left: "center",
         },
-      ],
-    });
-
-    // 更新折线图
-    const lineChartDom = document.getElementById("line-chart");
-    if (!lineChartDom) return;
-
-    const lineChart = echarts.init(lineChartDom);
-
-    // 数据键和显示名称
-    const costMetrics = [
-      {key: "total_cost", name: "总造价"},
-      {key: "labor_cost", name: "人工成本"},
-      {key: "risk_cost", name: "风险成本"},
-      {key: "quality_cost", name: "质量成本"},
-      {key: "dev_service_cost", name: "开发服务费用"},
-      {key: "adjusted_dev_service_cost", name: "调整后开发费用"},
-    ];
-
-    // x 轴显示这些指标的名称
-    const xAxisData = costMetrics.map((metric) => metric.name);
-
-    // 构造每个项目的折线图数据
-    const seriesData = this.projects.map((project) => ({
-      name: project.name,
-      type: "line",
-      data: costMetrics.map((metric) => project[metric.key] || 0), // 取出每个项目的相应值
-    }));
-
-    lineChart.setOption({
-      title: {
-        text: "项目成本趋势",
-        left: "center",
-      },
-      tooltip: {
-        trigger: "axis",
-      },
-      legend: {
-        top: "bottom",
-        data: this.projects.map((project) => project.name),
-
-      },
-      xAxis: {
-        type: "category",
-        data: xAxisData,
-        axisLabel: {
-          rotate: 30, // 旋转 45 度
-          interval: 0, // 强制显示所有标签
+        tooltip: {
+          trigger: "axis",
         },
-      },
-      yAxis: {
-        type: "value",
-      },
-      series: seriesData,
-    });
-  },
-}
+        legend: {
+          top: "bottom",
+          data: this.projects.map((project) => project.name),
+
+        },
+        xAxis: {
+          type: "category",
+          data: xAxisData,
+          axisLabel: {
+            rotate: 30, // 旋转 30 度
+            interval: 0, // 强制显示所有标签
+          },
+        },
+        yAxis: {
+          type: "value",
+        },
+        grid: {
+          top: "20%", // 设置距离顶部的距离
+          left: "10%", // 设置距离左侧的距离
+          right: "10%", // 设置距离右侧的距离
+          bottom: "20%", // 设置距离底部的距离
+        },
+        series: seriesData,
+      });
+    },
+  }
 
 }
 ;
@@ -507,7 +510,6 @@ export default {
 .search-bar {
   display: flex;
   align-items: center;
-  background-color: #e3f2fd; /* 浅蓝背景 */
   padding: 15px;
   border-radius: 10px;
 }
@@ -540,21 +542,20 @@ export default {
 
 /* 搜索按钮 */
 .el-button--primary {
-  background-color: #7fd5fb; /* 蓝色按钮背景 */
-  border-color: #42a5f5;
+  background-color: #409eff; /* 蓝色按钮背景 */
+  border-color: #409eff;
   color: white;
   border-radius: 5px;
 }
 
 .el-button--primary:hover {
-  background-color: #2196f3; /* 深蓝色悬停效果 */
-  border-color: #2196f3;
+  background-color: #409eff; /* 深蓝色悬停效果 */
+  border-color: #409eff;
 }
 
 /* 卡片容器 */
 .card-container {
   max-width: 1400px; /* 设置容器最大宽度 */
-  width: 100%; /* 容器宽度自适应 */
   margin: 0 auto; /* 居中 */
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -565,11 +566,9 @@ export default {
 .card-item {
   position: relative;
   width: 450px;
-  height: 350px;
+  height: 300px;
   box-sizing: border-box;
-  border-radius: 10px;
-  background-color: #e3f2fd; /* 浅蓝背景 */
-  border: 1px solid #42a5f5; /* 蓝色边框 */
+  border: 1px solid #f5f5f7;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
 }
@@ -595,7 +594,7 @@ export default {
 }
 
 .status-checked {
-  background-color: #7fd5fb; /* 蓝色已审核 */
+  background-color: #409eff; /* 蓝色已审核 */
 }
 
 /* 卡片头部 */
@@ -638,7 +637,7 @@ export default {
 }
 
 .approve-button {
-  background-color: #7bccff; /* 蓝色批准 */
+  background-color: #7fd5fb; /* 蓝色批准 */
   color: white;
   border: none;
   padding: 5px 10px;
@@ -649,20 +648,6 @@ export default {
 
 .approve-button:hover {
   background-color: #54c1f9;
-}
-
-.reject-button {
-  background-color: #f1948a; /* 红色驳回 */
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-top: -10px; /* 向上移动 */
-}
-
-.reject-button:hover {
-  background-color: #e53935;
 }
 
 .details-button {
@@ -693,7 +678,7 @@ export default {
 
 /* 分页容器 */
 .pagination-container {
-  margin-top: 0px; /* 调整分页与卡片之间的间距 */
+  margin-top: -5px; /* 调整分页与卡片之间的间距 */
   display: flex;
   justify-content: center; /* 保持分页居中 */
   margin-right: 20px; /* 向左移动 */
@@ -770,6 +755,7 @@ export default {
   width: 100%; /* 容器宽度 */
   max-width: 1200px; /* 最大宽度 */
   margin: 0 auto; /* 居中 */
+
 }
 
 .chart-item {
@@ -783,6 +769,7 @@ export default {
   justify-content: center; /* 居中对齐 */
   margin-bottom: 20px; /* 与下面卡片的间距 */
   border-radius: 20px;
+  margin-top: 25px; /* 调整分页与卡片之间的间距 */
 }
 
 /* 大卡片样式 */

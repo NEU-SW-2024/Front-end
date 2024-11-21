@@ -320,8 +320,9 @@ export default {
           })),
           measures: project.measures.map((measure) => ({
             measure_name: measure.measure_name || "",
-            GSC: measure.GSC || "",
+            DI: measure.di || "",
           })),
+          status: project.status===0 ? "待评估" : project.status===1 ? "待审核" : project.status===2 ? "完成" : "待计算" ,
           total_cost: project.total_cost || "",
           labor_cost: project.labor_cost || "",
           risk_cost: project.risk_cost || "",

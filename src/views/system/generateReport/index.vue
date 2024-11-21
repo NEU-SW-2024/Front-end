@@ -62,7 +62,7 @@ import * as echarts from "echarts";
 import axios from "axios"; // 引入 axios 库
 import { saveAs } from "file-saver"; // 引入 file-saver 用于文件下载
 import { generateDocx } from "@/utils/generateDocx.js"; // 引入自定义的文档生成工具
-import {getTenantProjects} from "@/api/system/dataAnalysis";
+import {getTenantProjects,generateReports} from "@/api/system/dataAnalysis";
 
 export default {
   components: {
@@ -90,6 +90,7 @@ export default {
       try {
         const response = await getTenantProjects();
         this.projects = response.map((project) => ({
+          ...project,
           project_id: project.project_id,
           type: "项目",
           name: project.name,
@@ -97,11 +98,10 @@ export default {
           report_status: project.report_status === false ? "未生成报告" : "已生成报告",
           creat_time: project.create_time,
         }));
+        console.log(this.projects);
         // 更新统计信息
         this.completedCount = this.projects.filter((p) => p.report_status === "已生成报告").length;
         this.pendingCount = this.projects.filter((p) => p.report_status === "未生成报告").length;
-        console.log(this.completedCount);
-        console.log(this.pendingCount);
         this.createPieChart();
       } catch (error) {
         console.error("获取项目数据失败:", error);
@@ -127,8 +127,8 @@ export default {
             center: ["50%", "50%"],
             roseType: "radius",
             data: [
-              { value: this.completedCount, name: "已生成报告" },
-              { value: this.pendingCount, name: "未生成报告" },
+              {value: this.completedCount, name: "已生成报告"},
+              {value: this.pendingCount, name: "未生成报告"},
             ],
             itemStyle: {
               color: (params) => {
@@ -174,12 +174,15 @@ export default {
           this.$message.error("未找到对应项目数据");
           return;
         }
+        if(project.status === '0' || project.status ==='3'){
+          this.$message.error("为待评估/待计算状态，不可下载文件");
+          return;
+        }
 
         // 获取模板文件
-        const response = await axios.get("/report/template2.docx", { responseType: "arraybuffer" });
+        const response = await axios.get("/report/template2.docx", {responseType: "arraybuffer"});
         const templateContent = new Uint8Array(response.data); // 模板内容
 
-        // 数据映射（与模板占位符对应）
         const data = {
           project_id: project.project_id || "",
           tenant_id: project.tenant_id || "",
@@ -194,8 +197,9 @@ export default {
           })),
           measures: project.measures.map((measure) => ({
             measure_name: measure.measure_name || "",
-            GSC: measure.GSC || "",
+            DI: measure.di || "",
           })),
+          status: project.status===0 ? "待评估" : project.status===1 ? "待审核" : project.status===2 ? "完成" : "待计算" ,
           total_cost: project.total_cost || "",
           labor_cost: project.labor_cost || "",
           risk_cost: project.risk_cost || "",
@@ -219,7 +223,6 @@ export default {
         console.error("文件生成失败:", error);
         this.$message.error("文件生成失败，请稍后再试！");
       }
-      await this.fetchProjects();
     },
 
 
@@ -237,13 +240,13 @@ export default {
     },
 
     // 确认生成文档
-    confirmGenerateReport() {
+    async confirmGenerateReport() {
       if (this.selectedProject) {
-        generateReports(this.selectedProject.project_id);
-        this.downloadFile(this.selectedProject.project_id);
+        await generateReports(this.selectedProject.project_id);
+        await this.downloadFile(this.selectedProject.project_id);
       }
+      await this.fetchProjects();
       this.dialogVisible = false;
-      this.fetchProjects();
     },
   },
 };
