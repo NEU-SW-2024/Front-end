@@ -1,23 +1,23 @@
 <template>
   <div class="evaluation-page">
-    <!-- 顶部卡片区域 -->
-    <div class="card-container">
-      <el-row type="flex" justify="center" :gutter="20">
-        <el-col :span="4.5" v-for="card in cards" :key="card.title">
-          <el-card shadow="hover" class="metric-card">
-            <template #header>
-              <div class="card-header">
-                <span class="card-title">{{ card.title }}</span>
+      <!-- 顶部卡片区域 -->
+      <div class="card-container">
+        <el-row type="flex" justify="center" :gutter="20">
+          <el-col :span="4.5" v-for="card in cards" :key="card.title">
+            <el-card shadow="hover" class="metric-card">
+              <template #header>
+                <div class="card-header">
+                  <span class="card-title" v-html="card.title"></span>
+                </div>
+              </template>
+              <div class="card-content">
+                <p class="card-value">{{ card.value }}</p>
+                <p class="card-unit">{{ card.unit }}</p>
               </div>
-            </template>
-            <div class="card-content">
-              <p class="card-value">{{ card.value }}</p>
-              <p class="card-unit">{{ card.unit }}</p>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
+            </el-card>
+          </el-col>
+        </el-row>
+      </div>
 
     <!-- 中间公式区域 -->
     <div class="equation-section">
@@ -108,30 +108,33 @@
           <el-descriptions-item label="质量等级因子(Q)">
             {{ standardDetails.qualityFactor || '-' }}
           </el-descriptions-item>
+		  <el-descriptions-item label="软件项目工作量AE">
+		    {{ standardDetails.qualityFactor || '-' }}
+		  </el-descriptions-item>
         </el-descriptions>
       </el-card>
     </div>
 
     <!-- 底部操作按钮 -->
-    <div class="actions">
-      <el-button type="primary" class="action-button" @click="goBack">返回修改</el-button>
-      <el-button 
-        type="success" 
-        class="action-button" 
-        @click="saveResult"
-        :loading="saving"
-      >
-        保存结果
-      </el-button>
-    </div>
-  </div>
+        <div class="actions">
+          <el-button type="primary" class="action-button" @click="goBack">返回修改</el-button>
+          <el-button 
+            type="success" 
+            class="action-button" 
+            @click="saveResult"
+            :loading="saving"
+          >
+            保存结果
+          </el-button>
+        </div>
+      </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { calculateResult, addAssessmentResult , getProjectDFP} from '@/api/system/assessmentResult';
+import { calculateResult, addAssessmentResult , getProjectDFP, calculateAssessmentDetailResult, addAssessmentResultDetail} from '@/api/system/assessmentResult';
 import { getStandardById } from '@/api/system/assessmentStandard';
 const router = useRouter();
 const route = useRoute();
@@ -142,8 +145,30 @@ const calculationResult = ref({
   createdAt: null,
   updatedAt: null
 });
+
+
+
+
 const projectDFP = ref(null);
 const standardDetails = ref({});
+const projectAE = ref(null);
+// 加载工作量AE
+const loadProjectAE = async () => {
+  try {
+    const { projectId, standardId } = route.query;
+    if (!projectId || !standardId) {
+      ElMessage.error('参数不完整');
+      return;
+    }
+    const response = await calculateAssessmentDetailResult({
+      projectId: parseInt(projectId),
+      stdId: parseInt(standardId)
+    });
+    projectAE.value = response.data;
+  } catch (error) {
+    ElMessage.error('工作量计算失败');
+  }
+};
 
 // 加载标准详情
 const loadStandardDetails = async () => {
@@ -188,12 +213,12 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString('zh-CN');
 };
 
-// 顶部卡片数据
+// 更新cards computed属性
 const cards = computed(() => [
-	{ title: "功能点", value: projectDFP.value || '-', unit: "FP" },
-  { title: "SDC", value: formatCurrency(calculationResult.value.projectSDC), unit: "元" },
-  { title: "ESDC", value: formatCurrency(calculationResult.value.projectESDC), unit: "元" },
-  { title: "创建时间", value: formatDate(calculationResult.value.createdAt), unit: "" },
+  { title: "DFP<br>调整后功能点数", value: projectDFP.value || '-', unit: "FP" },
+  { title: "SDC<br>调整前的总造价", value: formatCurrency(calculationResult.value.projectSDC), unit: "元" },
+  { title: "ESDC<br>调整后的总造价", value: formatCurrency(calculationResult.value.projectESDC), unit: "元" },
+  { title: "AE<br>工作量", value: projectAE.value || '-', unit: "" },
   { title: "更新时间", value: formatDate(calculationResult.value.updatedAt), unit: "" }
 ]);
 
@@ -218,12 +243,13 @@ const loadCalculationResult = async () => {
   }
 };
 
-// 保存结果
+// 更新保存结果函数
 const saveResult = async () => {
   try {
     saving.value = true;
     const { projectId, standardId } = route.query;
     
+    // 保存评估结果
     await addAssessmentResult({
       projectId: parseInt(projectId),
       stdId: parseInt(standardId),
@@ -231,8 +257,22 @@ const saveResult = async () => {
       projectESDC: calculationResult.value.projectESDC
     });
 
+    // 保存评估详细结果
+    await addAssessmentResultDetail({
+      projectId: parseInt(projectId),
+      stdId: parseInt(standardId),
+      totalCost: calculationResult.value.projectESDC,
+      laborCost: calculationResult.value.laborCost || 0,
+      riskCost: calculationResult.value.riskCost || 0,
+      qualityCost: calculationResult.value.qualityCost || 0,
+      devServiceCost: calculationResult.value.devServiceCost || 0,
+      adjustedDevServiceCost: calculationResult.value.adjustedDevServiceCost || 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
     ElMessage.success('保存成功');
-    router.push('/standards/calculation'); // 保存成功后返回列表页
+    router.push('/standards/calculation');
   } catch (error) {
     ElMessage.error('保存失败');
   } finally {
@@ -245,11 +285,12 @@ const goBack = () => {
   router.back();
 };
 
-// Call in onMounted
+// 更新onMounted
 onMounted(() => {
   loadProjectDFP();
   loadCalculationResult();
   loadStandardDetails();
+  loadProjectAE();
 });
 
 // 其他数据保持不变
