@@ -253,6 +253,29 @@
         </el-row>
       </el-form>
 
+<!-- 在表单的 </el-form> 标签后，dialog-footer 前添加 -->
+<div class="document-links">
+  <div class="document-section-title">相关参考文档：</div>
+  <div class="document-buttons">
+    <el-button 
+      type="info" 
+      link
+      @click="openDocument('/attachments/document1.pdf')"
+    >
+      <el-icon><Document /></el-icon>
+      参考文档1
+    </el-button>
+    <el-button 
+      type="info" 
+      link
+      @click="openDocument('/attachments/document2.pdf')"
+    >
+      <el-icon><Document /></el-icon>
+      参考文档2
+    </el-button>
+  </div>
+</div>
+
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="closeDialog">取消</el-button>
@@ -269,7 +292,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Delete } from '@element-plus/icons-vue'
+import { Plus, Search, Delete , Document} from '@element-plus/icons-vue'
 import { listStandards, delStandard, addStandard } from '@/api/system/assessmentStandard'
 
 const router = useRouter()
@@ -366,6 +389,22 @@ const closeDialog = () => {
   })
 }
 
+
+// 在 setup 函数中添加 openDocument 方法
+const openDocument = (path) => {
+  // 使用 window.open 打开文档
+  window.open(path, '_blank')
+  
+  // 或者如果你想使用 download 属性下载文件：
+  // const link = document.createElement('a')
+  // link.href = path
+  // link.download = path.split('/').pop() // 获取文件名
+  // document.body.appendChild(link)
+  // link.click()
+  // document.body.removeChild(link)
+}
+
+
 // 提交表单
 const submitForm = async () => {
   if (!formRef.value) return
@@ -422,6 +461,31 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.document-links {
+  padding: 0 20px 20px;
+  border-top: 1px solid #e9ecef;
+  margin-top: 20px;
+}
+
+.document-section-title {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 12px;
+  padding-top: 20px;
+}
+
+.document-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.document-buttons .el-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+	
+	
 .test20241117 {
   padding: 24px;
   background: #f5f7fa;

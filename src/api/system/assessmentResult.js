@@ -26,6 +26,15 @@ export function addAssessmentResult(data) {
   })
 }
 
+export function addAssessmentResultDetail(data){
+	return request({
+		url:`/api/assessment-detail-results/create`,
+		method:'post',
+		data:data
+	})
+}
+
+
 // 修改评估结果
 export function updateAssessmentResult(data) {
   return request({
@@ -70,6 +79,17 @@ export function calculateResult(data) {
     data: {
       projectId: data.projectId,  // 项目ID
       stdId: data.stdId          // 标准ID
+    }
+  })
+}
+
+export function calculateAssessmentDetailResult(data) {
+  return request({
+    url: '/api/assessment-detail-results/calculate',
+    method: 'post',
+    data: {
+      projectId: data.projectId,
+      stdId: data.stdId
     }
   })
 }
