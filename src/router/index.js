@@ -85,11 +85,61 @@ export const constantRoutes = [
     ]
   },
   {
-    path: '/accessor2',
-    component: () => import('@/views/system/accessor2/index'),
-    name: 'Accessor2',
-    props: true
-  }
+      path: '/standards',
+      component: Layout,
+      name: 'Standard',
+      meta: { title: '综合造价评估', icon: 'dollar-bag' },
+      children: [
+        {
+          path: 'list',
+          name: 'StandardList',
+          component: () => import('@/views/standard/list/index.vue'),
+          meta: { title: '标准列表' ,icon:'stdlist2'}
+        },
+        {
+          path: 'detail/:id',
+          name: 'StandardDetail',
+          component: () => import('@/views/standard/detail/index.vue'),
+		  hidden: true,
+          meta: { title: '标准详情' }
+        },
+		{
+			path:'calculation',
+			name:'CostCalculation',
+			component: () => import('@/views/standard/calculation/index.vue'),
+			meta:{ title:'造价计算', icon:'calculator'}
+		},
+		{
+			path:'choose-standard',
+			name:'ChooseStandard',
+			component: () => import('@/views/standard/choose-standard/index.vue'),
+			hidden:true,
+			meta:{title:'选择标准测试'}
+		},
+		{
+			path:'final-result',
+			name:'FinalResult',
+			component: () => import('@/views/standard/final-result/index.vue'),
+			hidden:true,
+			meta:{title:'结果评估测试'}
+		},
+		{
+			path:'result-history',
+			name:'ResultHistory',
+			component: () => import('@/views/standard/result-history/index.vue'),
+			meta:{title:'结果历史列表',icon:'history-svgrepo-com'}
+		},
+		{
+			path:'result-detail/:id',
+			name:'ResultDetail',
+			component: () => import('@/views/standard/result-detail/index.vue'),
+			hidden:true,
+			meta:{title:'结果详情'}
+		}
+      ]
+    }
+
+
 ]
 
 // 动态路由，基于用户权限动态去加载
