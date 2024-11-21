@@ -1,6 +1,5 @@
 <template>
   <div class="main">
-    <!-- 搜索框部分 -->
     <div class="search-wrapper">
       <el-input 
         v-model="query" 
@@ -17,7 +16,6 @@
       </el-input>
     </div>
 
-    <!-- 卡片容器 -->
     <div class="card-container">
       <el-radio-group v-model="selectedProjectId" class="project-radio-group">
         <el-card 
@@ -28,8 +26,7 @@
           shadow="hover"
           @click="toggleSelection(project.projectId)"
         >
-          <div class="card-content">
-            <!-- 卡片标题区 -->
+          <template #header>
             <div class="card-header">
               <div class="header-left">
                 <el-radio :label="project.projectId" class="project-radio">
@@ -45,21 +42,25 @@
                 </el-button>
               </div>
               <el-tag 
-                :type="getStatusType(project.status)"
+                :type="getStatusType(project.projectStatus)"
+                effect="dark"
                 class="status-tag"
               >
-                {{ formatStatus(project.status) }}
+                {{ formatStatus(project.projectStatus) }}
               </el-tag>
             </div>
-            
-            <!-- 卡片主体区 -->
-            <div class="card-body">
-              
-              <div class="card-body">
-                <div class="info-item">
-                  <span class="label">调整后功能点</span>
-                  <span class="value">{{ project.DFP || '待评估' }}</span>
-                </div>
+          </template>
+          
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-item">
+                <el-icon><Document /></el-icon>
+                <span class="label">调整后功能点为：{{ project.DFP }}</span>
+				
+                <span class="value" v-if="project.DFP !== null">{{ project.DFP }}</span>
+				
+                <el-skeleton v-else animated :rows="1" />
+				
               </div>
             </div>
           </div>
@@ -67,7 +68,6 @@
       </el-radio-group>
     </div>
 
-    <!-- 开始评估按钮 -->
     <div class="action-section">
       <el-button 
         type="primary"
@@ -83,53 +83,59 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search, Close } from '@element-plus/icons-vue'
-import { listFeats } from '@/api/system/assessmentResult'
+import { Search, Close, Document } from '@element-plus/icons-vue'
+import { listFeats, getProjectDFP } from '@/api/system/assessmentResult'
 
 const router = useRouter()
 const query = ref('')
 const projects = ref([])
 const selectedProjectId = ref(null)
 
-// 获取状态标签类型
 const getStatusType = (status) => {
   const types = {
     0: 'warning',  // 待评估
     1: 'info',     // 待审核
-    2: 'success'   // 完成
+    2: 'success',  // 完成
+    3: 'warning'   // 待计算
   }
-  return types[status] || ''
+  return types[status] || 'info'
 }
 
-// 格式化状态文本
 const formatStatus = (status) => {
   const statusMap = {
     0: '待评估',
     1: '待审核',
-    2: '已完成'
+    2: '完成',
+    3: '待计算'
   }
   return statusMap[status] || '未知状态'
 }
 
-// 切换选中状态
 const toggleSelection = (projectId) => {
   selectedProjectId.value = selectedProjectId.value === projectId ? null : projectId
 }
 
-// 获取项目列表
+// 在 script 部分添加
 const fetchProjects = async () => {
   try {
     const response = await listFeats({ name: query.value })
-    projects.value = response.data
+    const projectsWithDFP = await Promise.all(response.data.map(async (project) => {
+      try {
+        const dfpResponse = await getProjectDFP(project.projectId)
+        return { ...project, DFP: dfpResponse.data }
+      } catch (error) {
+        return { ...project, DFP: null }
+      }
+    }))
+    projects.value = projectsWithDFP
   } catch (error) {
     ElMessage.error('获取项目列表失败')
   }
 }
 
-// 开始评估，跳转到标准选择页面
 const startEvaluation = () => {
   if (selectedProjectId.value) {
     router.push({
@@ -139,7 +145,6 @@ const startEvaluation = () => {
   }
 }
 
-// 页面加载时获取数据
 onMounted(() => {
   fetchProjects()
 })
@@ -147,14 +152,11 @@ onMounted(() => {
 
 <style scoped>
 .main {
-  padding: 24px 0;  /* 修改为上下padding */
-  margin: 0; /* 确保没有margin */
-  background: #f5f7fa;
+  padding: 24px;
+  background: linear-gradient(135deg, #f6f8fc 0%, #f0f4f8 100%);
   min-height: 100vh;
-  width: 100%; /* 添加宽度100% */
 }
 
-/* 搜索框样式 */
 .search-wrapper {
   max-width: 600px;
   margin: 0 auto 32px;
@@ -165,39 +167,43 @@ onMounted(() => {
 }
 
 .search-input :deep(.el-input__wrapper) {
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.search-input :deep(.el-input__wrapper):hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 .card-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0;
 }
 
 .project-radio-group {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 稍微减小最小宽度 */
-    gap: 16px; /* 减小间距 */
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .project-card {
-  max-width: 480px;
-  margin: 0 auto;
-  width: 100%;
-  transition: all 0.3s;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
 }
 
 .project-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 16px 0 rgba(0,0,0,0.1);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
 }
 
 .project-card.selected {
   border: 2px solid #409EFF;
-  box-shadow: 0 8px 16px 0 rgba(64,158,255,0.1);
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.15);
 }
 
 .card-header {
@@ -205,8 +211,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: transparent;
 }
 
 .header-left {
@@ -215,66 +220,47 @@ onMounted(() => {
   gap: 12px;
 }
 
-.project-radio {
-  margin-right: 0;
-}
-
 .card-title {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 600;
   color: #2c3e50;
   margin: 0;
-  display: inline;
 }
 
-.card-body {
-  padding: 16px;
-  background: white;
+.info-grid {
+  display: grid;
+  gap: 16px;
 }
 
 .info-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
 }
 
-.info-item:last-child {
-  margin-bottom: 0;
-  border-bottom: none;
+.info-item .el-icon {
+  font-size: 20px;
+  color: #409EFF;
 }
 
 .label {
-  color: #606266;
+  color: #64748b;
   font-size: 14px;
+  flex: 1;
 }
 
 .value {
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-.clear-selection {
-  margin-left: 8px;
-  padding: 2px;
-  color: #909399;
-}
-
-.clear-selection:hover {
-  color: #F56C6C;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .status-tag {
-  font-size: 12px;
-  padding: 0 8px;
-}
-
-/* 评估按钮样式 */
-.action-section {
-  margin-top: 32px;
-  text-align: center;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-weight: 500;
 }
 
 .evaluate-button {
@@ -282,21 +268,24 @@ onMounted(() => {
   height: 48px;
   font-size: 16px;
   font-weight: 500;
-  transition: all 0.3s;
-}
-
-.evaluate-button:not(:disabled) {
+  border-radius: 24px;
+  margin-top: 40px;
   background: linear-gradient(135deg, #409EFF, #1890ff);
+  border: none;
+  transition: all 0.3s ease;
 }
 
 .evaluate-button:not(:disabled):hover {
-  background: linear-gradient(135deg, #1890ff, #096dd9);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(64,158,255,0.3);
+  box-shadow: 0 8px 16px rgba(64, 158, 255, 0.3);
+}
+
+.action-section {
+  text-align: center;
 }
 
 @media (max-width: 768px) {
-  .main-container {
+  .main {
     padding: 16px;
   }
   

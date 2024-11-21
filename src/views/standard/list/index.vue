@@ -33,6 +33,37 @@
       </el-row>
     </header>
 
+    <!-- 批量操作工具栏 -->
+    <div class="batch-toolbar" v-show="standards.length">
+      <div class="toolbar-left">
+        <el-checkbox
+          v-model="isAllSelected"
+          :indeterminate="isIndeterminate"
+          @change="handleCheckAllChange"
+        >
+          全选
+        </el-checkbox>
+        <!-- 添加取消选择按钮 -->
+        <el-button 
+          type="info" 
+          link
+          :disabled="!selectedIds.length"
+          @click="cancelAllSelection"
+        >
+          取消选择
+        </el-button>
+      </div>
+      <div class="toolbar-right">
+        <el-button
+          type="danger"
+          :disabled="!selectedIds.length"
+          @click="confirmBatchDelete"
+        >
+          批量删除 ({{ selectedIds.length }})
+        </el-button>
+      </div>
+    </div>
+
     <!-- 标准卡片列表 -->
     <section class="card-section">
       <el-row :gutter="20">
@@ -43,9 +74,21 @@
           v-for="standard in standards" 
           :key="standard.stdId"
         >
-          <el-card class="standard-card" :body-style="{ padding: '0px' }">
+          <el-card 
+            class="standard-card" 
+            :body-style="{ padding: '0px' }"
+            :class="{ 'is-selected': selectedIds.includes(standard.stdId) }"
+          >
+            
             <div class="card-header">
-              <h3 class="card-title">{{ standard.stdName }}</h3>
+              <div class="header-left">
+                <el-checkbox
+                  v-model="standard.isSelected"
+                  @change="(val) => handleSelectChange(val, standard.stdId)"
+                  class="select-checkbox"
+                />
+                <h3 class="card-title">{{ standard.stdName }}</h3>
+              </div>
               <div class="card-actions">
                 <el-tag size="small" :type="standard.stdStatus ? 'success' : 'info'">
                   {{ standard.stdStatus ? '启用' : '停用' }}
@@ -263,7 +306,7 @@
       @click="openDocument('/attachments/document1.pdf')"
     >
       <el-icon><Document /></el-icon>
-      参考文档1
+      参考文档1：2024年中国软件行业基准数据
     </el-button>
     <el-button 
       type="info" 
@@ -271,7 +314,7 @@
       @click="openDocument('/attachments/document2.pdf')"
     >
       <el-icon><Document /></el-icon>
-      参考文档2
+      参考文档2：软件质量的一些度量因子
     </el-button>
   </div>
 </div>
@@ -289,10 +332,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Delete , Document} from '@element-plus/icons-vue'
+import { Plus, Search, Delete, Document } from '@element-plus/icons-vue'
 import { listStandards, delStandard, addStandard } from '@/api/system/assessmentStandard'
 
 const router = useRouter()
@@ -301,6 +344,76 @@ const dialogVisible = ref(false)
 const loading = ref(false)
 const query = ref('')
 const standards = ref([])
+const selectedIds = ref([])
+
+// 在 script setup 中添加
+// 全选状态
+const isAllSelected = computed(() => {
+  return standards.value.length > 0 && selectedIds.value.length === standards.value.length
+})
+
+// 半选状态(部分选中)
+const isIndeterminate = computed(() => {
+  return selectedIds.value.length > 0 && selectedIds.value.length < standards.value.length
+})
+
+const cancelAllSelection = () => {
+  standards.value.forEach(standard => {
+    standard.isSelected = false
+  })
+  selectedIds.value = []
+}
+
+
+// 处理全选/取消全选
+const handleCheckAllChange = (val) => {
+  standards.value.forEach(standard => {
+    standard.isSelected = val
+  })
+  selectedIds.value = val ? standards.value.map(item => item.stdId) : []
+}
+
+
+
+
+// 修改选择回调
+const handleSelectChange = (checked, stdId) => {
+  if (checked) {
+    selectedIds.value.push(stdId)
+  } else {
+    const index = selectedIds.value.indexOf(stdId)
+    if (index > -1) {
+      selectedIds.value.splice(index, 1)
+    }
+  }
+}
+
+const confirmBatchDelete = () => {
+  if (selectedIds.value.length === 0) return
+  
+  ElMessageBox.confirm(
+    `确定要删除选中的 ${selectedIds.value.length} 个标准吗？此操作不可恢复`,
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+    .then(async () => {
+      try {
+        const deletePromises = selectedIds.value.map(id => delStandard(id))
+        await Promise.all(deletePromises)
+        ElMessage.success('批量删除成功')
+        fetchStandards()
+      } catch (error) {
+        ElMessage.error('批量删除失败')
+      }
+    })
+    .catch(() => {
+      ElMessage.info('已取消删除')
+    })
+}
 
 // 表单数据
 const form = reactive({
@@ -357,10 +470,15 @@ const rules = {
 }
 
 // 获取标准列表
+// Modified fetchStandards
 const fetchStandards = async () => {
   try {
     const response = await listStandards({ stdName: query.value })
-    standards.value = response.data
+    standards.value = response.data.map(item => ({
+      ...item,
+      isSelected: false
+    }))
+    selectedIds.value = [] // Reset selection
   } catch (error) {
     ElMessage.error('获取标准列表失败')
   }
@@ -461,6 +579,39 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.batch-toolbar {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.selected-count {
+  color: #606266;
+  font-size: 14px;
+}
+
+.card-selection {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+}
+
+.card-header {
+  padding: 16px 16px 16px 48px;
+}
+
+.standard-card.is-selected {
+  border: 2px solid var(--el-color-primary);
+}
+
+
+
+
 .document-links {
   padding: 0 20px 20px;
   border-top: 1px solid #e9ecef;
@@ -626,5 +777,66 @@ onMounted(() => {
 :deep(.el-form-item__label) {
   font-weight: 500;
   color: #2c3e50;
+}
+
+
+.card-header {
+  padding: 16px;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select-checkbox {
+  margin-right: 8px;
+}
+
+/* 移除以下样式 */
+.card-selection {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+}
+
+
+.batch-toolbar {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 在已有样式中添加 */
+.batch-toolbar .el-checkbox {
+  margin-right: 8px;
+}
+
+.batch-toolbar .el-button {
+  margin-left: auto; /* 将删除按钮推到右边 */
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-right {
+  margin-left: auto;
+}
+
+.batch-toolbar .el-checkbox {
+  margin-right: 8px;
 }
 </style>

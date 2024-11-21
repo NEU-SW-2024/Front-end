@@ -2,22 +2,22 @@
   <div class="evaluation-page">
     <!-- 顶部卡片区域 -->
     <div class="card-container">
-      <el-row type="flex" justify="center" :gutter="20">
-        <el-col :span="4.5" v-for="card in cards" :key="card.title">
-          <el-card shadow="hover" class="metric-card">
-            <template #header>
-              <div class="card-header">
-                <span class="card-title">{{ card.title }}</span>
-              </div>
-            </template>
-            <div class="card-content">
-              <p class="card-value">{{ card.value }}</p>
-              <p class="card-unit">{{ card.unit }}</p>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
+          <el-row type="flex" justify="center" :gutter="20">
+            <el-col :span="4.5" v-for="card in cards" :key="card.title">
+              <el-card shadow="hover" class="metric-card">
+                <template #header>
+                  <div class="card-header">
+                    <span class="card-title" v-html="card.title"></span>
+                  </div>
+                </template>
+                <div class="card-content">
+                  <p class="card-value">{{ card.value }}</p>
+                  <p class="card-unit">{{ card.unit }}</p>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+        </div>
 
     <!-- 中间公式区域 -->
     <div class="equation-section">
@@ -207,11 +207,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed ,  watchEffect } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { calculateResult, addAssessmentResult, getProjectDFP } from '@/api/system/assessmentResult';
+import { calculateResult, addAssessmentResult, getProjectDFP, calculateAssessmentDetailResult } from '@/api/system/assessmentResult';
 import { getStandardById } from '@/api/system/assessmentStandard';
+// import { addAssessmentResultDetail } from '@/api/system/assessmentResultDetail';
 
 const router = useRouter();
 const route = useRoute();
@@ -225,8 +226,39 @@ const calculationResult = ref({
 const projectDFP = ref(null);
 
 const standardDetails = ref({});
+const projectAE = ref(null);
+
+const detailResults = ref({
+  laborCost: 0,
+  riskCost: 0,
+  qualityCost: 0,
+  devServiceCost: 0,
+  adjustedDevServiceCost: 0
+});
+
+
+// Load AE value
+const loadProjectAE = async () => {
+  try {
+    const { projectId, standardId } = route.query;
+    if (!projectId || !standardId) {
+      ElMessage.error('参数不完整');
+      return;
+    }
+    const response = await calculateAssessmentDetailResult({
+      projectId: parseInt(projectId),
+      stdId: parseInt(standardId)
+    });
+    projectAE.value = response.data;
+    // Additional detail results would be loaded here if available from the API
+  } catch (error) {
+    ElMessage.error('工作量计算失败');
+  }
+};
 
 // 新增的响应式变量
+
+
 const adjustableValues = ref({
   dfp: 0,
   pdrValue: 0,
@@ -338,12 +370,12 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString('zh-CN');
 };
 
-// 顶部卡片数据
+// Update cards computed property
 const cards = computed(() => [
-  { title: "功能点", value: projectDFP.value || '-', unit: "FP" },
-  { title: "SDC", value: formatCurrency(calculatedSDC.value), unit: "元" }, // 使用计算后的值
-  { title: "ESDC", value: formatCurrency(calculatedESDC.value), unit: "元" }, // 使用计算后的值
-  { title: "创建时间", value: formatDate(calculationResult.value.createdAt), unit: "" },
+  { title: "DFP<br>调整后功能点数", value: adjustableValues.value.dfp || '-', unit: "FP" },
+  { title: "SDC<br>调整前的总造价", value: formatCurrency(calculatedSDC.value), unit: "元" },
+  { title: "ESDC<br>调整后的总造价", value: formatCurrency(calculatedESDC.value), unit: "元" },
+  { title: "AE<br>工作量", value: projectAE.value || '-', unit: "" },
   { title: "更新时间", value: formatDate(calculationResult.value.updatedAt), unit: "" }
 ]);
 
@@ -405,11 +437,12 @@ const loadProjectDFP = async () => {
   }
 };
 
-// 页面加载时获取数据
+// Update onMounted
 onMounted(() => {
   loadProjectDFP();
   loadCalculationResult();
   loadStandardDetails();
+  loadProjectAE();
 });
 
 // 其他数据保持不变
