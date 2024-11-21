@@ -57,14 +57,14 @@
       </el-card>
     </div>
 
-    <div class="details-section">
+	<div class="details-section">
       <el-card shadow="hover">
         <template #header>
           <div class="details-header">
             <span class="details-title">特征取值明细</span>
           </div>
         </template>
-        <!-- SDC 和 ESDC 显示 -->
+        <!-- SDC 和 ESDC 显示部分保持不变 -->
         <el-descriptions border :column="2" class="details-content highlight-row">
           <el-descriptions-item label="SDC" class="highlight-item">
             <span class="highlight-value">{{ formatCurrency(calculationResult.projectSDC) }}</span>
@@ -73,14 +73,40 @@
             <span class="highlight-value">{{ formatCurrency(calculationResult.projectESDC) }}</span>
           </el-descriptions-item>
         </el-descriptions>
-        <!-- 其他详情信息 -->
+        <!-- 更新后的详情信息部分 -->
         <el-descriptions border :column="3" class="details-content">
-          <el-descriptions-item 
-            v-for="item in filteredDetails" 
-            :key="item.label"
-            :label="item.label"
-          >
-            {{ item.value }}
+          <el-descriptions-item label="类别">
+            {{ standardDetails.stdType || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="特征">
+            管理容量的功能点数
+          </el-descriptions-item>
+          <el-descriptions-item label="取值">
+            {{ projectDFP || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="PDR">
+            {{ standardDetails.pdrValue || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="软件因素调整因子SWF">
+            {{ standardDetails.swf || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="开发因素调整因子RDF">
+            {{ standardDetails.rdf || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="人月折算系数">
+            {{ standardDetails.conversionFactor || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="行业非人力成本">
+            {{ formatCurrency(standardDetails.dnc) || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="直接非人力成本DNC(元)">
+            {{ formatCurrency(standardDetails.dnc) || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="RSK">
+            {{ standardDetails.rskFactor || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="质量等级因子(Q)">
+            {{ standardDetails.qualityFactor || '-' }}
           </el-descriptions-item>
         </el-descriptions>
       </el-card>
@@ -106,7 +132,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { calculateResult, addAssessmentResult , getProjectDFP} from '@/api/system/assessmentResult';
-
+import { getStandardById } from '@/api/system/assessmentStandard';
 const router = useRouter();
 const route = useRoute();
 const saving = ref(false);
@@ -117,7 +143,22 @@ const calculationResult = ref({
   updatedAt: null
 });
 const projectDFP = ref(null);
+const standardDetails = ref({});
 
+// 加载标准详情
+const loadStandardDetails = async () => {
+  try {
+    const { standardId } = route.query;
+    if (!standardId) {
+      ElMessage.error('标准ID不存在');
+      return;
+    }
+    const response = await getStandardById(standardId);
+    standardDetails.value = response.data;
+  } catch (error) {
+    ElMessage.error('标准详情加载失败');
+  }
+};
 
 const loadProjectDFP = async () => {
   try {
@@ -208,6 +249,7 @@ const goBack = () => {
 onMounted(() => {
   loadProjectDFP();
   loadCalculationResult();
+  loadStandardDetails();
 });
 
 // 其他数据保持不变

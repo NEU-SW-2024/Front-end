@@ -58,54 +58,160 @@
     </div>
 
     <div class="details-section">
-      <el-card shadow="hover">
-        <template #header>
-          <div class="details-header">
-            <span class="details-title">特征取值明细</span>
-          </div>
-        </template>
-        <!-- SDC 和 ESDC 显示 -->
-        <el-descriptions border :column="2" class="details-content highlight-row">
-          <el-descriptions-item label="SDC" class="highlight-item">
-            <span class="highlight-value">{{ formatCurrency(calculationResult.projectSDC) }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="ESDC" class="highlight-item">
-            <span class="highlight-value">{{ formatCurrency(calculationResult.projectESDC) }}</span>
-          </el-descriptions-item>
-        </el-descriptions>
-        <!-- 其他详情信息 -->
-        <el-descriptions border :column="3" class="details-content">
-          <el-descriptions-item 
-            v-for="item in filteredDetails" 
-            :key="item.label"
-            :label="item.label"
-          >
-            {{ item.value }}
-          </el-descriptions-item>
-        </el-descriptions>
-      </el-card>
-    </div>
+          <el-card shadow="hover">
+            <template #header>
+              <div class="details-header">
+                <div class="details-title-container">
+                  <span class="details-title">特征取值明细</span>
+                  <el-button 
+                    text 
+                    type="primary" 
+                    @click="resetToOriginal"
+                    class="reset-button"
+                  >
+                    重置为原始值
+                  </el-button>
+                </div>
+              </div>
+            </template>
+    
+            <!-- SDC 和 ESDC 显示 -->
+            <el-descriptions border :column="2" class="details-content highlight-row">
+              <el-descriptions-item label="SDC" class="highlight-item">
+                <span class="highlight-value" :class="{ 'value-changed': valueChanged }">
+                  {{ formatCurrency(calculatedSDC) }}
+                </span>
+              </el-descriptions-item>
+              <el-descriptions-item label="ESDC" class="highlight-item">
+                <span class="highlight-value" :class="{ 'value-changed': valueChanged }">
+                  {{ formatCurrency(calculatedESDC) }}
+                </span>
+              </el-descriptions-item>
+            </el-descriptions>
+    
+            <!-- 可调整的参数列表 -->
+            <el-descriptions border :column="3" class="details-content">
+              <el-descriptions-item label="类别">
+                {{ standardDetails.stdType || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="特征">
+                管理容量的功能点数
+              </el-descriptions-item>
+              <el-descriptions-item label="功能点数(DFP)">
+                <el-input-number 
+                  v-model="adjustableValues.dfp" 
+                  :min="0"
+                  :precision="2"
+                  :step="1"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+              <el-descriptions-item label="PDR">
+                <el-input-number 
+                  v-model="adjustableValues.pdrValue" 
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+              <el-descriptions-item label="软件因素调整因子SWF">
+                <el-input-number 
+                  v-model="adjustableValues.swf" 
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+              <el-descriptions-item label="开发因素调整因子RDF">
+                <el-input-number 
+                  v-model="adjustableValues.rdf" 
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+              <el-descriptions-item label="人月折算系数">
+                <el-input-number 
+                  v-model="adjustableValues.conversionFactor" 
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+              <el-descriptions-item label="基准人月费率">
+                <el-input-number 
+                  v-model="adjustableValues.costRate" 
+                  :min="0"
+                  :precision="2"
+                  :step="100"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+              <el-descriptions-item label="直接非人力成本DNC(元)">
+                <el-input-number 
+                  v-model="adjustableValues.dnc" 
+                  :min="0"
+                  :precision="2"
+                  :step="100"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+              <el-descriptions-item label="RSK">
+                <el-input-number 
+                  v-model="adjustableValues.rskFactor" 
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+              <el-descriptions-item label="质量等级因子(Q)">
+                <el-input-number 
+                  v-model="adjustableValues.qualityFactor" 
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  @change="recalculate"
+                  controls-position="right"
+                />
+              </el-descriptions-item>
+            </el-descriptions>
+          </el-card>
+        </div>
 
     <!-- 底部操作按钮 -->
     <div class="actions">
       <el-button type="primary" class="action-button" @click="goBack">返回</el-button>
-      <el-button 
+      <!-- <el-button 
         type="success" 
         class="action-button" 
         @click="saveResult"
         :loading="saving"
       >
         保存结果
-      </el-button>
+      </el-button> -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed ,  watchEffect } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { calculateResult, addAssessmentResult, getProjectDFP } from '@/api/system/assessmentResult';
+import { getStandardById } from '@/api/system/assessmentStandard';
 
 const router = useRouter();
 const route = useRoute();
@@ -117,6 +223,107 @@ const calculationResult = ref({
   updatedAt: null
 });
 const projectDFP = ref(null);
+
+const standardDetails = ref({});
+
+// 新增的响应式变量
+const adjustableValues = ref({
+  dfp: 0,
+  pdrValue: 0,
+  swf: 0,
+  rdf: 0,
+  conversionFactor: 0,
+  costRate: 0,
+  dnc: 0,
+  rskFactor: 0,
+  qualityFactor: 0
+});
+
+const valueChanged = ref(false);
+const originalValues = ref(null);
+
+
+// 移除 watchEffect，改为在数据加载完成后只初始化一次
+const initializeAdjustableValues = () => {
+  if (!projectDFP.value || !standardDetails.value.pdrValue) return;
+  
+  // 只在值为初始状态(0)时进行初始化
+  if (adjustableValues.value.dfp === 0) {
+    adjustableValues.value = {
+      dfp: projectDFP.value,
+      pdrValue: standardDetails.value.pdrValue,
+      swf: standardDetails.value.swf,
+      rdf: standardDetails.value.rdf,
+      conversionFactor: standardDetails.value.conversionFactor,
+      costRate: standardDetails.value.costRate,
+      dnc: standardDetails.value.dnc,
+      rskFactor: standardDetails.value.rskFactor,
+      qualityFactor: standardDetails.value.qualityFactor
+    };
+    // 保存原始值用于重置
+    originalValues.value = { ...adjustableValues.value };
+  }
+};
+
+// 计算 SDC
+const calculatedSDC = computed(() => {
+  const values = adjustableValues.value;
+  return values.dfp * values.pdrValue * values.swf * values.rdf / 
+         values.conversionFactor * values.costRate + values.dnc;
+});
+
+// 计算 ESDC
+const calculatedESDC = computed(() => {
+  return calculatedSDC.value * adjustableValues.value.rskFactor * 
+         adjustableValues.value.qualityFactor;
+});
+
+// 重新计算并显示变化效果
+const recalculate = () => {
+  valueChanged.value = true;
+  setTimeout(() => {
+    valueChanged.value = false;
+  }, 300);
+};
+
+// 重置为原始值
+const resetToOriginal = () => {
+  if (originalValues.value) {
+    adjustableValues.value = { ...originalValues.value };
+    recalculate();
+  }
+};
+
+
+
+// 监听数据加载完成后初始化可调整值
+// watchEffect(() => {
+//   if (projectDFP.value && standardDetails.value.pdrValue) {
+//     initializeAdjustableValues();
+//   }
+// });
+
+
+
+
+
+// 修改加载函数，在数据加载完成后调用初始化
+const loadStandardDetails = async () => {
+  try {
+    const { standardId } = route.query;
+    if (!standardId) {
+      ElMessage.error('标准ID不存在');
+      return;
+    }
+    const response = await getStandardById(standardId);
+    standardDetails.value = response.data;
+    initializeAdjustableValues(); // 在数据加载完成后初始化
+  } catch (error) {
+    ElMessage.error('标准详情加载失败');
+  }
+};
+
+
 // 格式化金额
 const formatCurrency = (value) => {
   return value ? value.toLocaleString('zh-CN', {
@@ -134,8 +341,8 @@ const formatDate = (date) => {
 // 顶部卡片数据
 const cards = computed(() => [
   { title: "功能点", value: projectDFP.value || '-', unit: "FP" },
-  { title: "SDC", value: formatCurrency(calculationResult.value.projectSDC), unit: "元" },
-  { title: "ESDC", value: formatCurrency(calculationResult.value.projectESDC), unit: "元" },
+  { title: "SDC", value: formatCurrency(calculatedSDC.value), unit: "元" }, // 使用计算后的值
+  { title: "ESDC", value: formatCurrency(calculatedESDC.value), unit: "元" }, // 使用计算后的值
   { title: "创建时间", value: formatDate(calculationResult.value.createdAt), unit: "" },
   { title: "更新时间", value: formatDate(calculationResult.value.updatedAt), unit: "" }
 ]);
@@ -189,13 +396,10 @@ const goBack = () => {
 };
 const loadProjectDFP = async () => {
   try {
-	// console.log("1");
     const { projectId } = route.query;
-	// console.log("2");
     const response = await getProjectDFP(projectId);
-	// console.log("3");
     projectDFP.value = response.data;
-	
+    initializeAdjustableValues(); // 在数据加载完成后初始化
   } catch (error) {
     ElMessage.error('功能点数据获取失败');
   }
@@ -205,6 +409,7 @@ const loadProjectDFP = async () => {
 onMounted(() => {
   loadProjectDFP();
   loadCalculationResult();
+  loadStandardDetails();
 });
 
 // 其他数据保持不变
@@ -498,5 +703,53 @@ const filteredDetails = computed(() => {
   margin: 20px 0;
   max-width: 90%;
   height: auto;
+}
+
+/* 新增样式 */
+.details-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reset-button {
+  font-size: 14px;
+}
+
+.value-changed {
+  animation: highlight-animation 0.3s ease-in-out;
+}
+
+@keyframes highlight-animation {
+  0% {
+    transform: scale(1);
+    color: #409EFF;
+  }
+  50% {
+    transform: scale(1.1);
+    color: #67C23A;
+  }
+  100% {
+    transform: scale(1);
+    color: #409EFF;
+  }
+}
+
+:deep(.el-input-number) {
+  width: 150px;
+}
+
+:deep(.el-descriptions__cell) {
+  .el-input-number {
+    width: 100%;
+  }
+}
+
+/* 调整数字输入框在描述列表中的样式 */
+:deep(.el-descriptions__content) {
+  padding: 8px;
+  .el-input-number {
+    width: 100%;
+  }
 }
 </style>
