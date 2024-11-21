@@ -60,20 +60,20 @@
             <div style="display: flex; align-items: center;">
               <!-- 进度条 -->
               <el-progress
-                  v-if="scope.row.status === 0"
+                  v-show="scope.row.status === 0"
                   :percentage="25"
                   :show-text="false"
                   status="warning"
                   style="flex-grow: 1; margin-right: 10px; height: 8px;"
               ></el-progress>
               <el-progress
-                  v-if="scope.row.status === 1"
+                  v-show="scope.row.status === 1"
                   :percentage="60"
                   :show-text="false"
                   style="flex-grow: 1; margin-right: 10px; height: 8px;"
               ></el-progress>
               <el-progress
-                  v-if="scope.row.status === 2"
+                  v-show="scope.row.status === 2"
                   :percentage="100"
                   :show-text="false"
                   status="success"
@@ -81,13 +81,13 @@
               ></el-progress>
 
               <!-- 状态文字 -->
-              <span v-if="scope.row.status === 0" class="el-tag el-tag--warning el-tag--mini">
+              <span v-show="scope.row.status === 0" class="el-tag el-tag--warning el-tag--mini">
         待评估
       </span>
-              <span v-if="scope.row.status === 1" class="el-tag el-tag--primary el-tag--mini">
+              <span v-show="scope.row.status === 1" class="el-tag el-tag--primary el-tag--mini">
         待审核
       </span>
-              <span v-if="scope.row.status === 2" class="el-tag el-tag--success el-tag--mini">
+              <span v-show="scope.row.status === 2" class="el-tag el-tag--success el-tag--mini">
          完成
       </span>
             </div>
@@ -115,28 +115,27 @@
     </el-card>
 
     <button @click="fetchProjects()"/>
+    <el-dialog
+        v-model="dialogVisible"
+        style="border-radius: 8px"
+        title="报告预览"
+        width="80%"
+        @opened="previewWord"> <!-- 使用 @opened 确保内容已渲染后执行 -->
+
+      <div id="docx-container" style="max-height: 580px; overflow: auto;"></div>
+      <div style="text-align: right; margin-top: 10px">
+        <el-button type="success" @click="download()">
+          <el-icon>
+            <Download/>
+          </el-icon>
+          下载文档
+        </el-button>
+      </div>
+
+
+    </el-dialog>
   </div>
 
-  <el-dialog
-      v-model="dialogVisible"
-      style="border-radius: 8px"
-      title="报告预览"
-      width="80%"
-      append-to-body
-      @opened="previewWord"> <!-- 使用 @opened 确保内容已渲染后执行 -->
-
-    <div id="docx-container" style="max-height: 580px; overflow: auto;"></div>
-    <div style="text-align: right; margin-top: 10px">
-      <el-button type="success" @click="download()">
-        <el-icon>
-          <Download/>
-        </el-icon>
-        下载文档
-      </el-button>
-    </div>
-
-
-  </el-dialog>
 
 </template>
 
@@ -272,6 +271,11 @@ export default {
   mounted() {
     this.fetchProjects();
   },
+  beforeDestroy() {
+    echarts.dispose(document.getElementById("task-chart"));
+    echarts.dispose(document.getElementById("cost-evaluation-chart"));
+    echarts.dispose(document.getElementById("trend-chart"));
+  },
   methods: {
     async fetchProjects() {
       try {
@@ -306,21 +310,30 @@ export default {
           project_id: project.project_id || "",
           tenant_id: project.tenant_id || "",
           name: project.name || "",
-          description: project.description || "",
-          accessor_id: project.accessor_id || "",
-          auditor_id: project.auditor_id || "",
+          accessor: project.accessor || "",
+          auditor: project.auditor || "",
           project_status: project.project_status || "",
           create_time: project.create_time || "",
-          features: project.features || [],
-          measures: project.measures || [],
+          features: project.features.map((feature) => ({
+            feat_name: feature.feat_name || "",
+            comment: feature.comment || "",
+          })),
+          measures: project.measures.map((measure) => ({
+            measure_name: measure.measure_name || "",
+            GSC: measure.GSC || "",
+          })),
           total_cost: project.total_cost || "",
           labor_cost: project.labor_cost || "",
           risk_cost: project.risk_cost || "",
           quality_cost: project.quality_cost || "",
           dev_service_cost: project.dev_service_cost || "",
           adjusted_dev_service_cost: project.adjusted_dev_service_cost || "",
-          res_sugg: project.res_sugg || "",
           created_at: project.created_at || "",
+          s: project.s || "",
+          vaf: project.vaf || "",
+          upf: project.upf || "",
+          dfp: project.dfp || "",
+          gsc: project.gsc || "",
         };
 
         const output = generateDocx(content, data);

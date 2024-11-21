@@ -62,7 +62,7 @@ import * as echarts from "echarts";
 import axios from "axios"; // 引入 axios 库
 import { saveAs } from "file-saver"; // 引入 file-saver 用于文件下载
 import { generateDocx } from "@/utils/generateDocx.js"; // 引入自定义的文档生成工具
-import {getTenantProjects,generateReports} from "@/api/system/dataAnalysis";
+import {getTenantProjects} from "@/api/system/dataAnalysis";
 
 export default {
   components: {
@@ -184,36 +184,31 @@ export default {
           project_id: project.project_id || "",
           tenant_id: project.tenant_id || "",
           name: project.name || "",
-          description: project.description || "",
           accessor: project.accessor || "",
           auditor: project.auditor || "",
           project_status: project.project_status || "",
           create_time: project.create_time || "",
-          // 确保 features 和 measures 是有效的数组
-          features: Array.isArray(project.features) ? project.features.map((feature) => ({
+          features: project.features.map((feature) => ({
             feat_name: feature.feat_name || "",
             comment: feature.comment || "",
-          })) : [],
-          measures: Array.isArray(project.measures) ? project.measures.map((measure) => ({
+          })),
+          measures: project.measures.map((measure) => ({
             measure_name: measure.measure_name || "",
             GSC: measure.GSC || "",
-          })) : [],
+          })),
           total_cost: project.total_cost || "",
           labor_cost: project.labor_cost || "",
           risk_cost: project.risk_cost || "",
           quality_cost: project.quality_cost || "",
           dev_service_cost: project.dev_service_cost || "",
           adjusted_dev_service_cost: project.adjusted_dev_service_cost || "",
-          res_sugg: project.res_sugg || "",
           created_at: project.created_at || "",
-          report_status: project.report_status || "",
           s: project.s || "",
           vaf: project.vaf || "",
           upf: project.upf || "",
           dfp: project.dfp || "",
           gsc: project.gsc || "",
         };
-
         // 调用 generateDocx 方法
         const output = generateDocx(templateContent, data);
 
