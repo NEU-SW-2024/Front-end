@@ -94,24 +94,50 @@
                   </el-form-item>
                </el-col>
                <el-col :span="12">
-                  <el-form-item label="租户ID" prop="tenantId">
-                     <el-input v-model="form.tenantId" placeholder="请输入租户ID" />
-                  </el-form-item>
-               </el-col>
+               <el-form-item label="租户ID" prop="tenantId">
+               <el-select v-model="form.tenantId" placeholder="请选择租户">
+                  <el-option
+                     v-for="user in tenantOptions"
+                     :key="user.userId"
+                     :label="user.userName"
+                     :value="user.userId"
+                  ></el-option>
+               </el-select>
+               </el-form-item>
+            </el-col>
                <el-col :span="12">
                   <el-form-item label="评估师ID" prop="accessorId">
-                     <el-input v-model="form.accessorId" placeholder="请输入评估师ID" />
+                  <el-select v-model="form.accessorId" placeholder="请选择评估师">
+                     <el-option
+                        v-for="user in accessorOptions"
+                        :key="user.userId"
+                        :label="user.userName"
+                        :value="user.userId"
+                     ></el-option>
+                  </el-select>
                   </el-form-item>
                </el-col>
                <el-col :span="12">
                   <el-form-item label="审核师ID" prop="auditorId">
-                     <el-input v-model="form.auditorId" placeholder="请输入审核师ID" />
+                  <el-select v-model="form.auditorId" placeholder="请选择审核师">
+                     <el-option
+                        v-for="user in auditorOptions"
+                        :key="user.userId"
+                        :label="user.userName"
+                        :value="user.userId"
+                     ></el-option>
+                  </el-select>
                   </el-form-item>
                </el-col>
                <el-col :span="12">
-                  <el-form-item label="项目状态" prop="projectStatus">
-                     <el-input v-model="form.projectStatus" placeholder="请输入项目状态" />
-                  </el-form-item>
+               <el-form-item label="项目状态" prop="projectStatus">
+                  <el-select v-model="form.projectStatus" placeholder="请选择项目状态">
+                     <el-option label="项目招标" value="项目招标"></el-option>
+                     <el-option label="项目早期" value="项目早期"></el-option>
+                     <el-option label="项目中期" value="项目中期"></el-option>
+                     <el-option label="项目完成" value="项目完成"></el-option>
+                  </el-select>
+               </el-form-item>
                </el-col>
                <el-col :span="12">
                   <el-form-item label="预计耗时" prop="estimatedTime">
@@ -142,6 +168,8 @@
 
 <script setup name="Project">
 import { listProject, getProject, delProject, addProject, updateProject } from "@/api/system/project";
+import { listUser } from '@/api/system/user';
+import { ref, reactive, onMounted, toRefs, getCurrentInstance } from 'vue';
 
 const { proxy } = getCurrentInstance();
 
@@ -156,7 +184,17 @@ const total = ref(0);
 const title = ref("");
 
 const data = reactive({
-  form: {},
+  form: {
+    projectId: undefined,
+    name: '',
+    tenantId: null,
+    accessorId: null,
+    auditorId: null,
+    projectStatus: '',
+    estimatedTime: undefined,
+    description: undefined,
+    projectContent: undefined
+  },
   queryParams: {
     pageNum: 1,
     pageSize: 10,
@@ -174,6 +212,25 @@ const data = reactive({
 });
 
 const { queryParams, form, rules } = toRefs(data);
+
+const userOptions = ref([]);
+const tenantOptions = ref([]);
+const accessorOptions = ref([]);
+const auditorOptions = ref([]);
+
+onMounted(() => {
+  fetchUserOptions();
+  getList();
+});
+
+function fetchUserOptions() {
+  listUser().then(response => {
+    userOptions.value = response.rows;
+    tenantOptions.value = userOptions.value.filter(user => user.roles.some(role => role.roleId === 2));
+    accessorOptions.value = userOptions.value.filter(user => user.roles.some(role => role.roleId === 3));
+    auditorOptions.value = userOptions.value.filter(user => user.roles.some(role => role.roleId === 4));
+  });
+}
 
 /** 查询项目列表 */
 function getList() {
@@ -275,6 +332,4 @@ function handleDelete(row) {
     proxy.$modal.msgSuccess("删除成功");
   }).catch(() => {});
 }
-
-getList();
 </script>
