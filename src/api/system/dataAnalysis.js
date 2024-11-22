@@ -8,3 +8,12 @@ export function getTenantProjects() {
     });
 
 }
+
+// 生成报告
+export function generateReports(projectId) {
+    return request({
+        url: '/audit/add/'+ projectId,
+        method: 'post',
+    });
+
+}

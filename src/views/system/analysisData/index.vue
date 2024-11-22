@@ -79,6 +79,12 @@
                   status="success"
                   style="flex-grow: 1; margin-right: 22px; height: 8px;"
               ></el-progress>
+              <el-progress
+                  v-show="scope.row.status === 3"
+                  :percentage="80"
+                  :show-text="false"
+                  style="flex-grow: 1; margin-right: 10px; height: 8px;"
+              ></el-progress>
 
               <!-- 状态文字 -->
               <span v-show="scope.row.status === 0" class="el-tag el-tag--warning el-tag--mini">
@@ -89,6 +95,9 @@
       </span>
               <span v-show="scope.row.status === 2" class="el-tag el-tag--success el-tag--mini">
          完成
+      </span>
+              <span v-show="scope.row.status === 3" class="el-tag el-tag--primary el-tag--mini">
+         待计算
       </span>
             </div>
           </template>
@@ -303,6 +312,11 @@ export default {
           return;
         }
 
+        if(!project.report_status){
+          this.$message.error("该项目暂未生成报告！请联系评估师:"+project.accessor);
+          return;
+        }
+
         const response = await axios.get("/report/template2.docx", {responseType: "arraybuffer"});
         const content = new Uint8Array(response.data);
 
@@ -320,8 +334,9 @@ export default {
           })),
           measures: project.measures.map((measure) => ({
             measure_name: measure.measure_name || "",
-            GSC: measure.GSC || "",
+            DI: measure.di || "",
           })),
+          status: project.status===0 ? "待评估" : project.status===1 ? "待审核" : project.status===2 ? "完成" : "待计算" ,
           total_cost: project.total_cost || "",
           labor_cost: project.labor_cost || "",
           risk_cost: project.risk_cost || "",
@@ -401,9 +416,9 @@ export default {
       const pendingTasks = categories.map((name) => {
         return this.projects.filter((p) => {
           if (role === "accessor") {
-            return p[role] === name && p.status === 0;
+            return p[role] === name && (p.status === 0 || p.status === 3);
           } else {
-            return p[role] === name && (p.status === 1 || p.status === 0);
+            return p[role] === name && (p.status === 1 || p.status === 0 || p.status === 3);
           }
         }).length;
       });
