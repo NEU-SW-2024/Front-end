@@ -249,7 +249,7 @@ const loadProjectAE = async () => {
       projectId: parseInt(projectId),
       stdId: parseInt(standardId)
     });
-    projectAE.value = response.data;
+    projectAE.value = response.data.AE;
     // Additional detail results would be loaded here if available from the API
   } catch (error) {
     ElMessage.error('工作量计算失败');
