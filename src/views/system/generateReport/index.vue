@@ -191,12 +191,12 @@ export default {
           auditor: project.auditor,
           project_status: project.project_status,
           create_time: project.create_time,
-          features: project.features.map((feature) => ({
-            feat_name: feature.feat_name,
+          features: project.features.map((feature,index) => ({
+            feat_name: feature.feat_name ||  `功能点${index + 1}`,
             comment: feature.comment,
           })),
-          measures: project.measures.map((measure) => ({
-            measure_name: measure.measure_name,
+          measures: project.measures.map((measure,index) => ({
+            measure_name: measure.measure_name ||`度量${index + 1}`,
             DI: measure.di,
           })),
           status: project.status === "0" ? "待评估" : project.status ==="1" ? "待审核" : project.status === "2" ? "完成" : "待计算",
