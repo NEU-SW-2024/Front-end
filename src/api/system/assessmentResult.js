@@ -8,11 +8,27 @@ export function listAssessmentResults(query) {
     params: query // 通过查询参数传递筛选条件
   })
 }
+// 获取所有评估结果细节列表
+export function listAssessmentResultsDetail(query) {
+  return request({
+    url: '/api/assessment-detail-results/list',
+    method: 'get',
+    params: query // 通过查询参数传递筛选条件
+  })
+}
 
 // 根据ID获取评估结果详情
 export function getAssessmentResultById(resId) {
   return request({
     url: `/api/assessment-results/${resId}`,
+    method: 'get'
+  })
+}
+
+// 根据ID获取评估结果详情
+export function getAssessmentResultDetailById(resId) {
+  return request({
+    url: `/api/assessment-detail-results/${resId}`,
     method: 'get'
   })
 }
@@ -48,6 +64,14 @@ export function updateAssessmentResult(data) {
 export function delAssessmentResult(resId) {
   return request({
     url: `/api/assessment-results/${resId}`,
+    method: 'delete'
+  })
+}
+
+// 删除评估结果细节
+export function delAssessmentResultDetail(resId) {
+  return request({
+    url: `/api/assessment-detail-results/${resId}`,
     method: 'delete'
   })
 }

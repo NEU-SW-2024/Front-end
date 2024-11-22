@@ -134,7 +134,11 @@ import {
   addAssessmentResult,
   getProjectDFP,
   calculateAssessmentDetailResult,
-  addAssessmentResultDetail
+  addAssessmentResultDetail,
+  updateAssessmentResult,
+  getAssessmentResultDetailById,
+  delAssessmentResultDetail,
+  listAssessmentResultsDetail
 } from '@/api/system/assessmentResult';
 import { getStandardById } from '@/api/system/assessmentStandard';
 
@@ -306,43 +310,58 @@ const assessmentResultDetail = ref({
 		}
 	};
 
-	// Updated saveResult to include both the original and detail results
-	const saveResult = async () => {
-	  try {
-	    saving.value = true;
-	    const { projectId, standardId } = route.query;
-	
-	    // Save original assessment result
-	    await addAssessmentResult({
-	      projectId: parseInt(projectId),
-	      stdId: parseInt(standardId),
-	      projectSDC: calculationResult.value.projectSDC,
-	      projectESDC: calculationResult.value.projectESDC
-	    });
-	
-	    // Save assessment detail result
-	    await addAssessmentResultDetail({
-	      ...assessmentResultDetail.value,
-	      projectId: parseInt(projectId),
-	      stdId: parseInt(standardId),
-	      totalCost: calculationResult.value.projectESDC,
-	      createdAt: new Date(),
-	      updatedAt: new Date()
-	    });
-	
-	    ElMessage.success('保存成功');
-	    router.push('/standards/calculation');
-	  } catch (error) {
-	    ElMessage.error('保存失败');
-	  } finally {
-	    saving.value = false;
-	  }
-	};
+// Updated saveResult to correctly check existing results
+const saveResult = async () => {
+  try {
+    saving.value = true;
+    const { projectId, standardId } = route.query;
 
-	// 返回上一页
-	const goBack = () => {
-		router.back();
-	};
+    // Save original assessment result
+    await addAssessmentResult({
+      projectId: parseInt(projectId),
+      stdId: parseInt(standardId),
+      projectSDC: calculationResult.value.projectSDC,
+      projectESDC: calculationResult.value.projectESDC
+    });
+
+    // Get all assessment result details without parameters
+    const response = await listAssessmentResultsDetail();
+
+    // Extract the list from the response
+    const allDetails = response.data || [];
+    
+    // Find and delete any existing detail for this project
+    for (const detail of allDetails) {
+      if (detail.projectId === parseInt(projectId)) {
+        try {
+          await delAssessmentResultDetail(detail.resId);
+          console.log(`Deleted existing detail with resId: ${detail.resId} for projectId: ${projectId}`);
+        } catch (deleteError) {
+          console.error('Error deleting existing detail:', deleteError);
+          // Continue with the process even if delete fails
+        }
+      }
+    }
+
+    // Save new assessment detail result
+    await addAssessmentResultDetail({
+      ...assessmentResultDetail.value,
+      projectId: parseInt(projectId),
+      stdId: parseInt(standardId),
+      totalCost: calculationResult.value.projectESDC,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    ElMessage.success('保存成功');
+    router.push('/standards/calculation');
+  } catch (error) {
+    console.error('Save failed:', error);
+    ElMessage.error('保存失败: ' + (error.message || '未知错误'));
+  } finally {
+    saving.value = false;
+  }
+};
 
 	// Update onMounted to ensure proper loading sequence
 	onMounted(async () => {
