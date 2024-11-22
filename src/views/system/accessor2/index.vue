@@ -82,20 +82,20 @@ export default {
       featurePoints: [], // 功能点数据
       isStepValid: false, // 当前步骤的验证状态
       adjustmentFactors: [
-{ projectId: this.projectId, measureName: '数据通信（Data Communications）', di: 0},
-  { projectId: this.projectId, measureName: '分布式数据处理（distributed Data Processing）', di: 0},
-  { projectId: this.projectId, measureName: '性能（Performance）', di: 0 },
-  { projectId: this.projectId, measureName: '重度配置（heavily used configuration）', di: 0 },
-  { projectId: this.projectId, measureName: '处理速率（transaction rate）', di: 0},
-  { projectId: this.projectId, measureName: '在线数据输入（online data entry）', di: 0 },
-  { projectId: this.projectId, measureName: '最终用户使用效率（end user efficiency）', di:0},
-  { projectId: this.projectId, measureName: '在线升级（online update）', di: 0 },
-  { projectId: this.projectId, measureName: '复杂处理（complex processing）', di: 0},
-  { projectId: this.projectId, measureName: '可重用性（Reusability）', di: 0},
-  { projectId: this.projectId, measureName: '易安装性（installation ease）', di: 0 },
-  { projectId: this.projectId, measureName: '易操作性（operational ease）', di:0},
-  { projectId: this.projectId, measureName: '多场所（multiple sites）', di:0},
-  { projectId: this.projectId, measureName: '支持变更（facilitate change）', di: 0 }
+  { projectId: this.projectId, measureName: '数据通信', di: 0},
+  { projectId: this.projectId, measureName: '分布式数据处理', di: 0},
+  { projectId: this.projectId, measureName: '性能', di: 0 },
+  { projectId: this.projectId, measureName: '重度配置', di: 0 },
+  { projectId: this.projectId, measureName: '处理速率', di: 0},
+  { projectId: this.projectId, measureName: '在线数据输入', di: 0 },
+  { projectId: this.projectId, measureName: '最终用户使用效率', di:0},
+  { projectId: this.projectId, measureName: '在线升级', di: 0 },
+  { projectId: this.projectId, measureName: '复杂处理', di: 0},
+  { projectId: this.projectId, measureName: '可重用性', di: 0},
+  { projectId: this.projectId, measureName: '易安装性', di: 0 },
+  { projectId: this.projectId, measureName: '易操作性', di:0},
+  { projectId: this.projectId, measureName: '多场所', di:0},
+  { projectId: this.projectId, measureName: '支持变更', di: 0 }
 ], // 复杂度调整因子
       projectProgress: 0,
     };
