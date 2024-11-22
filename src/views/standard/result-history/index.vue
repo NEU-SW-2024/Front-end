@@ -43,79 +43,74 @@
       </span>
     </div>
 
-    <!-- 评估结果卡片列表 -->
     <section class="card-section">
-      <el-row :gutter="20">
-        <el-col 
-          :xs="24" 
-          :sm="12" 
-          :md="8" 
-          v-for="result in results" 
-          :key="result.resId"
-        >
-          <el-card 
-            class="result-card" 
-            :body-style="{ padding: '0px' }"
-            :class="{ 'is-selected': selectedIds.includes(result.resId) }"
-          >
-            <div class="card-selection">
-              <el-checkbox
-                v-model="result.isSelected"
-                @change="(val) => handleSelectChange(val, result.resId)"
-              />
-            </div>
-            <div class="card-header">
-              <h3 class="card-title">项目 #{{ result.projectId }}</h3>
-			  <h3 class="card-title">
-			    {{ projectNames[result.projectId] || '未知项目' }} 
-			  </h3>
-              <div class="card-actions">
-                <el-button
-                  type="danger"
-                  circle
-                  size="small"
-                  class="delete-button"
-                  :icon="Delete"
-                  @click.stop="confirmDelete(result.resId)"
-                />
-              </div>
-            </div>
-            
-            <div class="card-content">
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="label">评估标准ID</span>
-                  <span class="value">{{ result.stdId }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">开发服务费用</span>
-                  <span class="value">￥{{ formatNumber(result.projectSDC) }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">调整后费用</span>
-                  <span class="value">￥{{ formatNumber(result.projectESDC) }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">创建时间</span>
-                  <span class="value">{{ formatDate(result.createdAt) }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="card-footer">
-              <el-button 
-                type="primary" 
-                class="detail-button"
-                @click="viewDetail(result.resId)"
+          <el-row :gutter="20">
+            <el-col 
+              :xs="24" 
+              :sm="12" 
+              :md="8" 
+              v-for="result in results" 
+              :key="result.resId"
+            >
+              <el-card 
+                class="result-card" 
+                :body-style="{ padding: '0px' }"
+                :class="{ 'is-selected': selectedIds.includes(result.resId) }"
               >
-                查看详情
-              </el-button>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </section>
-  </div>
+                <div class="card-selection">
+                  <el-checkbox
+                    v-model="result.isSelected"
+                    @change="(val) => handleSelectChange(val, result.resId)"
+                  />
+                </div>
+                <div class="card-header">
+                  <div class="title-section">
+                    <h3 class="card-title">{{ projectNames[result.projectId] || '未知项目' }}</h3>
+                    <div class="standard-name">{{ standardNames[result.stdId] || '加载中...' }}</div>
+                  </div>
+                  <div class="card-actions">
+                    <el-button
+                      type="danger"
+                      circle
+                      size="small"
+                      class="delete-button"
+                      :icon="Delete"
+                      @click.stop="confirmDelete(result.resId)"
+                    />
+                  </div>
+                </div>
+                
+                <div class="card-content">
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="label">开发服务费用</span>
+                      <span class="value">￥{{ formatNumber(result.projectSDC) }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">调整后费用</span>
+                      <span class="value">￥{{ formatNumber(result.projectESDC) }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">创建时间</span>
+                      <span class="value">{{ formatDate(result.createdAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="card-footer">
+                  <el-button 
+                    type="primary" 
+                    class="detail-button"
+                    @click="viewDetail(result.resId)"
+                  >
+                    查看详情
+                  </el-button>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+        </section>
+      </div>
 </template>
 
 <script setup>
@@ -124,12 +119,25 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Delete } from '@element-plus/icons-vue'
 import { listAssessmentResults, delAssessmentResult, getProjectName } from '@/api/system/assessmentResult'
+import { getStandardById } from '@/api/system/assessmentStandard'
+
 
 const router = useRouter()
 const query = ref('')
 const results = ref([])
 const selectedIds = ref([])
 const projectNames = ref({}) // 用于存储项目ID和名称的映射
+const standardNames = ref({}) // Store standard names
+
+
+const loadStandardName = async (stdId) => {
+  try {
+    const response = await getStandardById(stdId)
+    standardNames.value[stdId] = response.data.stdName
+  } catch (error) {
+    standardNames.value[stdId] = '未知标准'
+  }
+}
 
 // 计算全选和半选状态
 const isAllSelected = computed(() => {
@@ -181,13 +189,15 @@ const fetchResults = async () => {
     const response = await listAssessmentResults({ projectId: query.value })
     results.value = response.data.map(item => ({
       ...item,
-      isSelected: false
+      isSelected: false,
+      createdAt: new Date() // 设置为当前时间
     }))
     
-    // 获取所有项目的名称
+    // 获取所有项目和标准名称
     for (const result of results.value) {
       const nameRes = await getProjectName(result.projectId)
       projectNames.value[result.projectId] = nameRes.msg
+      await loadStandardName(result.stdId)
     }
   } catch (error) {
     ElMessage.error('获取评估结果列表失败')
@@ -270,6 +280,35 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+.title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.standard-name {
+  font-size: 14px;
+  color: var(--el-color-primary);
+  font-weight: 500;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 16px 16px 48px;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+
+
 .assessment-results {
   padding: 24px;
   background: #f5f7fa;
