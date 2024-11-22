@@ -14,7 +14,7 @@
               <span class="amount-label">评估金额</span>
               <div class="amount-value-container">
                 <span class="amount-value">{{ project.total_cost }}</span>
-                <span class="amount-unit">万元</span>
+                <span class="amount-unit">元</span>
               </div>
             </div>
             <div class="status">
