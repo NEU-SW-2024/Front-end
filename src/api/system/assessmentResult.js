@@ -136,3 +136,15 @@ export function getProjectName(projectId) {
    params: { projectId }
  })
 }
+
+
+// 更改测评状态的接口函数
+export function changeCalculationStatus(data) {
+  return request({
+    url: '/dev-api/accessor/changeStatus',
+    method: 'post',
+    data: {
+      projectId: data.projectId
+    }
+  })
+}

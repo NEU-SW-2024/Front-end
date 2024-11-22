@@ -138,7 +138,8 @@ import {
   updateAssessmentResult,
   getAssessmentResultDetailById,
   delAssessmentResultDetail,
-  listAssessmentResultsDetail
+  listAssessmentResultsDetail,
+  changeCalculationStatus
 } from '@/api/system/assessmentResult';
 import { getStandardById } from '@/api/system/assessmentStandard';
 
@@ -351,6 +352,11 @@ const saveResult = async () => {
       totalCost: calculationResult.value.projectESDC,
       createdAt: new Date(),
       updatedAt: new Date()
+    });
+
+    // 更新项目状态
+    await changeCalculationStatus({
+      projectId: parseInt(projectId)
     });
 
     ElMessage.success('保存成功');
